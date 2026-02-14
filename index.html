@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VPN Debug Helper</title>
+    <style>
+      :root {
+        /* ── Palette (each hex defined once) ── */
+        --d-bg: #0f1216;
+        --d-panel: #151a20;
+        --d-text: #eef2f6;
+        --d-muted: #aab3bf;
+        --d-accent: #60A5FA;
+        --d-accent-2: #7ee787;
+        --d-border: #2a323d;
+        --d-danger: #ff7b72;
+        --d-btn-text: #081018;
+
+        --l-bg: #f6f7fb;
+        --l-panel: #ffffff;
+        --l-text: #0f1720;
+        --l-muted: #5b6775;
+        --l-accent: #2563EB;
+        --l-accent-2: #15803d;
+        --l-border: #d7dde6;
+        --l-danger: #b91c1c;
+        --l-btn-text: #ffffff;
+
+        /* ── Active theme (dark default) ── */
+        --bg: var(--d-bg);
+        --panel: var(--d-panel);
+        --text: var(--d-text);
+        --muted: var(--d-muted);
+        --accent: var(--d-accent);
+        --accent-2: var(--d-accent-2);
+        --border: var(--d-border);
+        --danger: var(--d-danger);
+        --btn-text: var(--d-btn-text);
+        color-scheme: dark;
+      }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme="dark"]) {
+          --bg: var(--l-bg);
+          --panel: var(--l-panel);
+          --text: var(--l-text);
+          --muted: var(--l-muted);
+          --accent: var(--l-accent);
+          --accent-2: var(--l-accent-2);
+          --border: var(--l-border);
+          --danger: var(--l-danger);
+          --btn-text: var(--l-btn-text);
+          color-scheme: light;
+        }
+      }
+      :root[data-theme="light"] {
+        --bg: var(--l-bg);
+        --panel: var(--l-panel);
+        --text: var(--l-text);
+        --muted: var(--l-muted);
+        --accent: var(--l-accent);
+        --accent-2: var(--l-accent-2);
+        --border: var(--l-border);
+        --danger: var(--l-danger);
+        --btn-text: var(--l-btn-text);
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        --bg: var(--d-bg);
+        --panel: var(--d-panel);
+        --text: var(--d-text);
+        --muted: var(--d-muted);
+        --accent: var(--d-accent);
+        --accent-2: var(--d-accent-2);
+        --border: var(--d-border);
+        --danger: var(--d-danger);
+        --btn-text: var(--d-btn-text);
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        font-size: 18px;
+      }
+      main {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 20px 60px;
+      }
+      h1, h2, h3 {
+        margin: 0 0 12px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      h1 {
+        font-size: 32px;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 24px;
+      }
+      h3 {
+        margin-top: 18px;
+        font-size: 20px;
+      }
+      .panel:not(:first-of-type) h2 {
+        margin-top: 0;
+      }
+      p {
+        margin: 8px 0 16px;
+        color: var(--muted);
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 16px;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .grid-2 {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      }
+      .grid-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      input, select, textarea, button {
+        width: 100%;
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 12px;
+        font-size: 18px;
+      }
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+      textarea[readonly] {
+        min-height: 100px;
+        overflow: hidden;
+      }
+      button {
+        cursor: pointer;
+        background: var(--accent);
+        color: var(--btn-text);
+        font-weight: 700;
+        border: none;
+        transition: transform 0.06s ease, opacity 0.2s ease;
+      }
+      .theme-toggle {
+        display: flex;
+        gap: 6px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 4px;
+      }
+      .theme-btn {
+        width: auto;
+        padding: 6px 14px;
+        font-size: 15px;
+        font-weight: 600;
+        background: transparent;
+        color: var(--muted);
+        border: none;
+        border-radius: 8px;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+      .theme-btn.active {
+        background: var(--accent);
+        color: var(--btn-text);
+      }
+      .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      button:active {
+        transform: scale(0.99);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      .row > * {
+        flex: 1 1 auto;
+      }
+      .hint {
+        font-size: 16px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .output {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .output label {
+        margin-top: 12px;
+      }
+      .output label:first-child {
+        margin-top: 0;
+      }
+      .output textarea {
+        min-height: 92px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 16px;
+      }
+      #zdebugStrings {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      input.invalid, textarea.invalid {
+        border-color: var(--danger) !important;
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 15%, transparent);
+      }
+      .validation-error {
+        color: var(--danger);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 600;
+        background: var(--accent);
+        color: var(--btn-text);
+        margin-left: 8px;
+      }
+      .success {
+        color: var(--accent-2);
+      }
+      .warning {
+        color: var(--danger);
+      }
+      .footer-note {
+        margin-top: 20px;
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .rotation-fields {
+        display: none !important;
+      }
+      .rotation-fields.active {
+        display: grid !important;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin: 24px 0 20px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 0;
+      }
+      .tab-btn {
+        padding: 12px 20px;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: color 0.2s ease, border-color 0.2s ease;
+        margin-bottom: -2px;
+        width: auto;
+      }
+      .tab-btn:hover {
+        color: var(--text);
+      }
+      .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        background: var(--panel);
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="header-row">
+        <h1>VPN Debug Helper</h1>
+        <div class="theme-toggle">
+          <button class="theme-btn" id="themeLight" title="Light mode">Light</button>
+          <button class="theme-btn" id="themeDark" title="Dark mode">Dark</button>
+          <button class="theme-btn active" id="themeAuto" title="Follow system preference">Auto</button>
+        </div>
+      </div>
+      <p>
+        Generate copy-ready commands for VPN traffic captures, debug log collection, and file transfers. Select your gateway version and flow details above — commands update automatically.
+      </p>
+
+      <section class="panel">
+        <h2>1) Flow Details</h2>
+        <div class="grid grid-2">
+          <div>
+            <label for="gwIp">Local Gateway IP</label>
+            <input id="gwIp" placeholder="e.g. 1.1.1.1" />
+          </div>
+          <div>
+            <label for="peerIp">Remote Peer Gateway IP</label>
+            <input id="peerIp" placeholder="e.g. 2.2.2.2" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label for="localHost">Local Host <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, behind local GW)</span></label>
+            <input id="localHost" placeholder="e.g. 10.0.0.10" />
+          </div>
+          <div>
+            <label for="remoteHost">Remote Host <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, behind peer GW)</span></label>
+            <input id="remoteHost" placeholder="e.g. 10.0.0.20" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label for="gwVersion">Gateway Version</label>
+            <select id="gwVersion">
+              <option value="r8120" selected>R81.20/R82+</option>
+              <option value="r8110">R81.10</option>
+              <option value="smb">SMB</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint">Tip: You can paste IPs as you go. Outputs update automatically.</div>
+      </section>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="debugging">VPN Debugging</button>
+        <button class="tab-btn" data-tab="captures">Traffic Captures</button>
+        <button class="tab-btn" data-tab="collection">File Collection</button>
+      </div>
+
+      <div id="tab-debugging" class="tab-content active">
+      <section class="panel">
+        <h2>2) Clear Old Debug Logs <span class="badge" id="debugClearVersionBadge"></span></h2>
+        <div class="output" style="margin-top: 0;">
+          <label for="debugClearCommands">Commands</label>
+          <textarea id="debugClearCommands" readonly style="min-height: 130px;"></textarea>
+          <div class="row">
+            <button id="copyDebugClear">Copy commands</button>
+          </div>
+          <div class="hint" id="debugClearHint"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>3) Turn On VPN Debugs <span class="badge" id="debugOnVersionBadge"></span></h2>
+        <div class="output" style="margin-top: 0;">
+          <label for="debugOnCommands">Commands</label>
+          <textarea id="debugOnCommands" readonly style="min-height: 130px;"></textarea>
+          <div class="row">
+            <button id="copyDebugOn">Copy commands</button>
+          </div>
+          <div class="hint" id="debugOnHint"></div>
+        </div>
+      </section>
+      </div>
+
+      <div id="tab-captures" class="tab-content">
+      <section class="panel">
+        <h2>4) Output Settings</h2>
+        <div class="grid grid-2">
+          <div>
+            <label for="outputType">Output Type</label>
+            <select id="outputType">
+              <option value="pcap">pcap file</option>
+              <option value="txt">text file</option>
+              <option value="stdout">stdout</option>
+            </select>
+          </div>
+          <div>
+            <label for="fwTimestamp">Enable fw monitor -T</label>
+            <select id="fwTimestamp">
+              <option value="on" selected>on (default)</option>
+              <option value="off">off</option>
+            </select>
+          </div>
+          <div>
+            <label for="fwBaseName">fw monitor filename</label>
+            <input id="fwBaseName" value="fwmonitor" />
+          </div>
+          <div>
+            <label for="tcpBaseName">tcpdump filename</label>
+            <input id="tcpBaseName" value="tcpdump" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label for="tcpRotation">tcpdump file rotation</label>
+            <select id="tcpRotation">
+              <option value="off" selected>off</option>
+              <option value="on">on</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-2 rotation-fields" id="rotationFieldsWrapper" style="margin-top: 14px;">
+          <div>
+            <label for="tcpRotationSize">Max file size (MB)</label>
+            <input id="tcpRotationSize" type="number" value="256" min="1" />
+          </div>
+          <div>
+            <label for="tcpRotationCount">Number of files</label>
+            <input id="tcpRotationCount" type="number" value="4" min="1" />
+          </div>
+        </div>
+        <div class="hint">Choose stdout to stream live; otherwise files are saved with the names above. Rotation splits captures into multiple files to limit size (e.g., 4 files × 256 MB = max 1024 MB total).</div>
+      </section>
+
+      <section class="panel">
+        <h2>5) fw monitor</h2>
+        <div class="output" style="margin-top: 0;">
+          <label for="fwCommand">Command</label>
+          <textarea id="fwCommand" readonly></textarea>
+          <div class="row">
+            <button id="copyFw">Copy fw monitor</button>
+            <button id="clearFw" class="secondary">Clear</button>
+          </div>
+          <div class="hint" id="fwHint"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>6) tcpdump</h2>
+        <h3 style="font-size: 18px; margin: 0 0 12px; color: var(--muted); font-weight: 600;">Host/Network filters</h3>
+        <div class="grid grid-2">
+          <div>
+            <label for="tcpPeerDisplay">Peer IP from section 1</label>
+            <input id="tcpPeerDisplay" readonly style="background: var(--panel); cursor: default; color: var(--accent);" />
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0;">
+                <input type="checkbox" id="tcpIncludePeer" checked style="width: auto; margin: 0;" />
+                <span>Include peer IP in filter</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label for="tcpAdditionalHosts">Additional hosts/networks <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, one per line)</span></label>
+            <textarea id="tcpAdditionalHosts" placeholder="e.g.&#10;host 1.2.3.4&#10;net 10.0.0.0/24" style="min-height: 80px; font-size: 14px;"></textarea>
+            <div class="hint">Combine multiple filters with "or" logic.</div>
+          </div>
+        </div>
+        <h3 style="font-size: 18px; margin: 20px 0 12px; color: var(--muted); font-weight: 600;">Additional filters <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></h3>
+        <div class="grid grid-2">
+          <div>
+            <label for="tcpPorts">Custom ports <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(comma-separated)</span></label>
+            <input id="tcpPorts" placeholder="e.g. 500,4500,18234" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label>IPsec protocols <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="tcpIsakmp" style="width: auto; margin: 0;" />
+                <span>ISAKMP (UDP 500)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="tcpNatT" style="width: auto; margin: 0;" />
+                <span>NAT-T (UDP 4500)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="tcpEsp" style="width: auto; margin: 0;" />
+                <span>ESP (proto 50)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="tcpAh" style="width: auto; margin: 0;" />
+                <span>AH (proto 51)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="output" style="margin-top: 16px;">
+          <label for="tcpCommand">Command</label>
+          <textarea id="tcpCommand" readonly></textarea>
+          <div class="row">
+            <button id="copyTcp">Copy tcpdump</button>
+            <button id="clearTcp" class="secondary">Clear</button>
+          </div>
+          <div class="hint" id="tcpHint"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>7) fw ctl zdebug drop</h2>
+        <div class="grid grid-2">
+          <div>
+            <label for="zdebugOutput">Output destination</label>
+            <select id="zdebugOutput">
+              <option value="stdout" selected>stdout (live)</option>
+              <option value="file">file</option>
+            </select>
+          </div>
+          <div>
+            <label for="zdebugFile">Output filename</label>
+            <input id="zdebugFile" value="/var/log/drops.txt" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label>Filter by IP addresses <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="zdebugGw" style="width: auto; margin: 0;" />
+                <span>Local Gateway IP</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="zdebugPeer" style="width: auto; margin: 0;" />
+                <span>Remote Peer Gateway IP</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="zdebugLocal" style="width: auto; margin: 0;" />
+                <span>Local Host</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+                <input type="checkbox" id="zdebugRemote" style="width: auto; margin: 0;" />
+                <span>Remote Host</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label for="zdebugStrings">Filter by strings <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, one per line)</span></label>
+            <textarea id="zdebugStrings" placeholder="e.g.&#10;vpn_&#10;replay&#10;clear text packet&#10;according to the policy" style="min-height: 140px;"></textarea>
+            <div class="hint">Case-insensitive string matches.</div>
+          </div>
+        </div>
+        <div class="output" style="margin-top: 16px;">
+          <label for="zdebugCommand">Command</label>
+          <textarea id="zdebugCommand" readonly></textarea>
+          <div class="row">
+            <button id="copyZdebug">Copy zdebug</button>
+          </div>
+          <div class="hint">Select IPs and/or add strings to filter. No selection = no grep filter (shows all output).</div>
+        </div>
+      </section>
+      </div>
+
+      <div id="tab-collection" class="tab-content">
+      <section class="panel">
+        <h2>8) VPN Collection Commands <span class="badge" id="collectionVersionBadge"></span></h2>
+        <div>
+          <label>Include traffic captures in archive</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+              <input type="checkbox" id="tarDrops" checked style="width: auto; margin: 0;" />
+              <span>zdebug drops file</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+              <input type="checkbox" id="tarTcpdump" checked style="width: auto; margin: 0;" />
+              <span>tcpdump captures</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
+              <input type="checkbox" id="tarFwmonitor" checked style="width: auto; margin: 0;" />
+              <span>fw monitor captures</span>
+            </label>
+          </div>
+        </div>
+        <div class="output" style="margin-top: 16px;">
+          <label for="collectionCommands">Commands</label>
+          <textarea id="collectionCommands" readonly style="min-height: 200px;"></textarea>
+          <div class="row">
+            <button id="copyCollection">Copy commands</button>
+          </div>
+          <div class="hint" id="collectionHint"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>9) SFTP + sshpass Upload</h2>
+        <div class="grid grid-3">
+          <div>
+            <label for="sftpUser">SFTP Username</label>
+            <input id="sftpUser" placeholder="SFTP_USERNAME" />
+          </div>
+          <div>
+            <label for="sftpPass">SFTP Password</label>
+            <input id="sftpPass" placeholder="SFTP_PASSWORD" />
+          </div>
+          <div>
+            <label for="sftpHost">SFTP Host</label>
+            <input id="sftpHost" placeholder="ftp.example.com" />
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
+          <div>
+            <label for="sftpUploadFile">Local file <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(path on gateway)</span></label>
+            <input id="sftpUploadFile" value="/var/log/vpn_debugs.tgz" />
+          </div>
+          <div>
+            <label for="sftpUploadPath">Remote destination <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(SFTP path)</span></label>
+            <input id="sftpUploadPath" value="/incoming/" />
+          </div>
+        </div>
+        <div class="output" style="margin-top: 16px;">
+          <label for="sftpCommand">Command</label>
+          <textarea id="sftpCommand" readonly></textarea>
+          <div class="row">
+            <button id="copySftp">Copy command</button>
+          </div>
+          <div class="hint">Security: avoid emailing credentials.</div>
+        </div>
+      </section>
+      </div>
+
+      <p class="footer-note">
+        Everything on this page is copy-only; it never sends data anywhere.
+      </p>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const state = {
+        gwIp: $("gwIp"),
+        peerIp: $("peerIp"),
+        localHost: $("localHost"),
+        remoteHost: $("remoteHost"),
+        outputType: $("outputType"),
+        fwTimestamp: $("fwTimestamp"),
+        fwBaseName: $("fwBaseName"),
+        tcpBaseName: $("tcpBaseName"),
+        tcpRotation: $("tcpRotation"),
+        tcpRotationSize: $("tcpRotationSize"),
+        tcpRotationCount: $("tcpRotationCount"),
+        tcpPeerDisplay: $("tcpPeerDisplay"),
+        tcpIncludePeer: $("tcpIncludePeer"),
+        tcpAdditionalHosts: $("tcpAdditionalHosts"),
+        tcpPorts: $("tcpPorts"),
+        tcpIsakmp: $("tcpIsakmp"),
+        tcpNatT: $("tcpNatT"),
+        tcpEsp: $("tcpEsp"),
+        tcpAh: $("tcpAh"),
+        fwCommand: $("fwCommand"),
+        fwHint: $("fwHint"),
+        tcpCommand: $("tcpCommand"),
+        tcpHint: $("tcpHint"),
+        zdebugCommand: $("zdebugCommand"),
+        zdebugOutput: $("zdebugOutput"),
+        zdebugFile: $("zdebugFile"),
+        zdebugGw: $("zdebugGw"),
+        zdebugPeer: $("zdebugPeer"),
+        zdebugLocal: $("zdebugLocal"),
+        zdebugRemote: $("zdebugRemote"),
+        zdebugStrings: $("zdebugStrings"),
+        gwVersion: $("gwVersion"),
+        debugClearCommands: $("debugClearCommands"),
+        debugOnCommands: $("debugOnCommands"),
+        tarDrops: $("tarDrops"),
+        tarTcpdump: $("tarTcpdump"),
+        tarFwmonitor: $("tarFwmonitor"),
+        collectionCommands: $("collectionCommands"),
+        sftpUser: $("sftpUser"),
+        sftpPass: $("sftpPass"),
+        sftpHost: $("sftpHost"),
+        sftpUploadFile: $("sftpUploadFile"),
+        sftpUploadPath: $("sftpUploadPath"),
+        sftpCommand: $("sftpCommand")
+      };
+
+      // --- Validation helpers ---
+      function isValidIPv4(str) {
+        if (!str) return true;
+        const parts = str.split(".");
+        if (parts.length !== 4) return false;
+        return parts.every(p => /^\d{1,3}$/.test(p) && +p >= 0 && +p <= 255);
+      }
+
+      // Check for obvious errors while still typing (before all 4 octets)
+      function hasObviousIpError(str) {
+        if (!str) return null;
+        // Non-numeric / non-dot characters
+        if (/[^0-9.]/.test(str)) return "Only numbers and dots allowed";
+        // Double dots
+        if (/\.\./.test(str)) return "Double dots not allowed";
+        // Leading dot
+        if (str.startsWith(".")) return "Cannot start with a dot";
+        // Check each partial octet so far
+        const parts = str.split(".");
+        for (const p of parts) {
+          if (p.length > 3) return `"${p}" is too long for an octet`;
+          if (p !== "" && +p > 255) return `${p} exceeds 255`;
+        }
+        // Too many octets
+        if (parts.length > 4) return "Too many octets";
+        return null;
+      }
+
+      function isValidCIDR(str) {
+        if (!str) return true;
+        const m = str.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
+        if (!m) return false;
+        return isValidIPv4(m[1]) && +m[2] >= 0 && +m[2] <= 32;
+      }
+
+      function isValidHostOrNet(line) {
+        const l = line.trim();
+        if (!l) return true;
+        if (l.startsWith("host ")) return isValidIPv4(l.slice(5).trim());
+        if (l.startsWith("net "))  return isValidCIDR(l.slice(4).trim());
+        return false;
+      }
+
+      function setFieldValid(el, valid) {
+        el.classList.toggle("invalid", !valid);
+      }
+
+      function showError(el, msg) {
+        let err = el.nextElementSibling;
+        if (!err || !err.classList.contains("validation-error")) {
+          err = document.createElement("div");
+          err.className = "validation-error";
+          el.parentNode.insertBefore(err, el.nextSibling);
+        }
+        err.textContent = msg;
+        err.style.display = msg ? "" : "none";
+      }
+
+      // Soft validation: only flag obvious errors while typing
+      // Returns true if the value is usable (valid or still being typed)
+      function validateIpField(el) {
+        const val = el.value.trim();
+        if (!val) {
+          setFieldValid(el, true);
+          showError(el, "");
+          return true;
+        }
+        // Check for obvious errors first (bad chars, octets > 255, etc.)
+        const obvious = hasObviousIpError(val);
+        if (obvious) {
+          setFieldValid(el, false);
+          showError(el, obvious);
+          return false;
+        }
+        // If field was previously marked invalid on blur and now looks complete, revalidate
+        if (el.dataset.blurValidated === "true") {
+          const valid = isValidIPv4(val);
+          setFieldValid(el, valid);
+          showError(el, valid ? "" : "Invalid IPv4 — need 4 octets (e.g. 1.2.3.4)");
+          return valid;
+        }
+        // Still typing, no obvious error — clear any previous error
+        setFieldValid(el, true);
+        showError(el, "");
+        // For command generation: only use if it's a complete valid IP
+        return isValidIPv4(val);
+      }
+
+      // Full validation on blur (leaving the field)
+      function validateIpFieldOnBlur(el) {
+        const val = el.value.trim();
+        if (!val) {
+          el.dataset.blurValidated = "false";
+          setFieldValid(el, true);
+          showError(el, "");
+          return;
+        }
+        el.dataset.blurValidated = "true";
+        const obvious = hasObviousIpError(val);
+        if (obvious) {
+          setFieldValid(el, false);
+          showError(el, obvious);
+          return;
+        }
+        const valid = isValidIPv4(val);
+        setFieldValid(el, valid);
+        showError(el, valid ? "" : "Invalid IPv4 — need 4 octets (e.g. 1.2.3.4)");
+      }
+
+      // Check for obvious errors in a host/net line while typing
+      function hasObviousHostNetError(line) {
+        const l = line.trim();
+        if (!l) return null;
+        // Allow partial typing of "host" or "net" keywords
+        if ("host".startsWith(l.toLowerCase()) || "net".startsWith(l.toLowerCase())) return null;
+        // Once past the keyword, must start with "host" or "net"
+        if (!l.startsWith("host") && !l.startsWith("net")) {
+          return `"${l}" — must start with "host" or "net"`;
+        }
+        // "host" or "net" typed but no space yet — still typing
+        if (l === "host" || l === "net") return null;
+        // If they typed "host " or "net " check the IP part for obvious issues
+        if (l.startsWith("host ")) {
+          const ip = l.slice(5).trim();
+          if (ip) return hasObviousIpError(ip);
+        }
+        if (l.startsWith("net ")) {
+          const cidr = l.slice(4).trim();
+          const parts = cidr.split("/");
+          if (parts[0]) {
+            const ipErr = hasObviousIpError(parts[0]);
+            if (ipErr) return ipErr;
+          }
+          if (parts.length > 1 && parts[1] !== "") {
+            if (!/^\d{1,2}$/.test(parts[1]) || +parts[1] > 32) return `/${parts[1]} — CIDR must be 0-32`;
+          }
+        }
+        return null;
+      }
+
+      // Soft validation while typing: only flag obvious errors
+      function validateAdditionalHosts() {
+        const el = state.tcpAdditionalHosts;
+        const val = el.value.trim();
+        if (!val) {
+          setFieldValid(el, true);
+          showError(el, "");
+          return [];
+        }
+        const lines = val.split("\n").map(l => l.trim()).filter(Boolean);
+
+        // Check for obvious errors only
+        for (const l of lines) {
+          const obvious = hasObviousHostNetError(l);
+          if (obvious) {
+            setFieldValid(el, false);
+            showError(el, obvious);
+            return null;
+          }
+        }
+
+        // If blur-validated, do full check
+        if (el.dataset.blurValidated === "true") {
+          const invalid = lines.filter(l => !isValidHostOrNet(l));
+          if (invalid.length > 0) {
+            setFieldValid(el, false);
+            showError(el, `Invalid: "${invalid[0]}" — use "host x.x.x.x" or "net x.x.x.x/cidr"`);
+            return null;
+          }
+        }
+
+        setFieldValid(el, true);
+        showError(el, "");
+        // Only return complete valid lines for command generation
+        return lines.filter(l => isValidHostOrNet(l));
+      }
+
+      function baseFilters() {
+        const gw = state.gwIp.value.trim();
+        const peer = state.peerIp.value.trim();
+        const local = state.localHost.value.trim();
+        const remote = state.remoteHost.value.trim();
+
+        const filters = [];
+        if (gw && peer) {
+          filters.push(`-F "${gw},0,${peer},0,0"`, `-F "${peer},0,${gw},0,0"`);
+        }
+        if (local && remote) {
+          filters.push(`-F "${local},0,${remote},0,0"`, `-F "${remote},0,${local},0,0"`);
+        }
+        return filters.join(" ");
+      }
+
+      function buildFwMonitor() {
+        // Validate IP fields — soft check while typing
+        const gwOk = validateIpField(state.gwIp);
+        const peerOk = validateIpField(state.peerIp);
+        const localOk = validateIpField(state.localHost);
+        const remoteOk = validateIpField(state.remoteHost);
+
+        // If any field has an obvious error, block
+        const gwObvious = hasObviousIpError(state.gwIp.value.trim());
+        const peerObvious = hasObviousIpError(state.peerIp.value.trim());
+        const localObvious = hasObviousIpError(state.localHost.value.trim());
+        const remoteObvious = hasObviousIpError(state.remoteHost.value.trim());
+
+        if (gwObvious || peerObvious || localObvious || remoteObvious) {
+          state.fwCommand.value = "# Fix invalid IP addresses above";
+          $("copyFw").disabled = true;
+          state.fwHint.textContent = "";
+          return;
+        }
+
+        // Use only complete valid IPs for command generation
+        const gw = isValidIPv4(state.gwIp.value.trim()) ? state.gwIp.value.trim() : "";
+        const peer = isValidIPv4(state.peerIp.value.trim()) ? state.peerIp.value.trim() : "";
+        const local = isValidIPv4(state.localHost.value.trim()) ? state.localHost.value.trim() : "";
+        const remote = isValidIPv4(state.remoteHost.value.trim()) ? state.remoteHost.value.trim() : "";
+
+        // Check if we have at least one valid pair
+        const hasGwPeerPair = gw && peer;
+        const hasLocalRemotePair = local && remote;
+
+        if (!hasGwPeerPair && !hasLocalRemotePair) {
+          state.fwCommand.value = "# Fill in at least Gateway IPs OR Host IPs to generate command";
+          $("copyFw").disabled = true;
+          state.fwHint.textContent = "Required: Gateway IPs OR Host IPs";
+          return;
+        }
+
+        const filters = baseFilters();
+        const output = state.outputType.value;
+        const base = state.fwBaseName.value.trim() || "fwmonitor";
+        const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
+
+        let cmd = `fw monitor ${timeFlag} ${filters}`.replace(/\s+/g, " ").trim();
+        if (output === "pcap") {
+          cmd = `${cmd} -w -o ${base}.pcap`;
+        } else if (output === "txt") {
+          cmd = `${cmd} > ${base}.txt`;
+        } else {
+          cmd = `${cmd}`;
+        }
+
+        state.fwCommand.value = cmd.trim();
+        $("copyFw").disabled = false;
+        state.fwHint.textContent =
+          output === "stdout"
+            ? "If stdout is too noisy, switch to text file."
+            : "Text output uses shell redirection for clarity.";
+      }
+
+      function buildTcpdump() {
+        const output = state.outputType.value;
+        const base = state.tcpBaseName.value.trim() || "tcpdump";
+        const iface = "any";
+        const peerIp = state.peerIp.value.trim();
+        const rotation = state.tcpRotation.value;
+        const rotationSize = state.tcpRotationSize.value.trim() || "256";
+        const rotationCount = state.tcpRotationCount.value.trim() || "4";
+        const includePeer = state.tcpIncludePeer.checked;
+        const additionalHosts = state.tcpAdditionalHosts.value.trim();
+        const customPorts = state.tcpPorts.value.trim();
+
+        // Update the peer IP display field
+        state.tcpPeerDisplay.value = peerIp || "(not set - enter in section 1)";
+
+        // Build host/network filters
+        let filters = [];
+        
+        // Add peer IP if checkbox is checked and peer IP exists
+        if (includePeer && peerIp) {
+          filters.push(`host ${peerIp}`);
+        }
+
+        // Add additional hosts/networks (one per line)
+        if (additionalHosts) {
+          const validatedLines = validateAdditionalHosts();
+          if (validatedLines === null) {
+            state.tcpCommand.value = "# Fix invalid entries in additional hosts/networks";
+            $("copyTcp").disabled = true;
+            state.tcpHint.textContent = "Use format: host x.x.x.x or net x.x.x.x/cidr";
+            return;
+          }
+          filters.push(...validatedLines);
+        } else {
+          // Clear any previous validation state
+          setFieldValid(state.tcpAdditionalHosts, true);
+          showError(state.tcpAdditionalHosts, "");
+        }
+
+        // Check if we have at least one host/network filter
+        if (filters.length === 0) {
+          state.tcpCommand.value = "# Check 'Include peer IP' or add additional hosts to generate command";
+          $("copyTcp").disabled = true;
+          state.tcpHint.textContent = "Required: At least one host or network filter";
+          return;
+        }
+
+        // Add IPsec protocol filters
+        if (state.tcpIsakmp.checked) {
+          filters.push("udp port 500");
+        }
+        if (state.tcpNatT.checked) {
+          filters.push("udp port 4500");
+        }
+        if (state.tcpEsp.checked) {
+          filters.push("proto 50");
+        }
+        if (state.tcpAh.checked) {
+          filters.push("proto 51");
+        }
+
+        // Add custom ports
+        if (customPorts) {
+          const ports = customPorts.split(",").map(p => p.trim()).filter(Boolean);
+          // Obvious errors: non-numeric characters
+          const hasLetters = ports.filter(p => !/^\d+$/.test(p));
+          if (hasLetters.length > 0) {
+            setFieldValid(state.tcpPorts, false);
+            showError(state.tcpPorts, `"${hasLetters[0]}" — ports must be numbers only`);
+            state.tcpCommand.value = "# Fix invalid port numbers";
+            $("copyTcp").disabled = true;
+            state.tcpHint.textContent = "";
+            return;
+          }
+          // Range check only on blur
+          if (state.tcpPorts.dataset.blurValidated === "true") {
+            const outOfRange = ports.filter(p => +p < 1 || +p > 65535);
+            if (outOfRange.length > 0) {
+              setFieldValid(state.tcpPorts, false);
+              showError(state.tcpPorts, `Port ${outOfRange[0]} out of range — use 1-65535`);
+              state.tcpCommand.value = "# Fix invalid port numbers";
+              $("copyTcp").disabled = true;
+              state.tcpHint.textContent = "";
+              return;
+            }
+          }
+          setFieldValid(state.tcpPorts, true);
+          showError(state.tcpPorts, "");
+          const validPorts = ports.filter(p => +p >= 1 && +p <= 65535);
+          validPorts.forEach(port => filters.push(`port ${port}`));
+        } else {
+          setFieldValid(state.tcpPorts, true);
+          showError(state.tcpPorts, "");
+        }
+
+        // Combine filters with "or"
+        let filter = filters.length > 1 ? `'${filters.join(" or ")}'` : filters[0];
+
+        let cmd = `tcpdump -nnei ${iface} ${filter}`.replace(/\s+/g, " ").trim();
+        if (output === "pcap") {
+          cmd = `${cmd} -s 0`;
+          if (rotation === "on") {
+            cmd = `${cmd} -W ${rotationCount} -C ${rotationSize} -w ${base}.pcap`;
+          } else {
+            cmd = `${cmd} -w ${base}.pcap`;
+          }
+        } else if (output === "txt") {
+          cmd = `${cmd} -tttt`;
+          cmd = `${cmd} > ${base}.txt`;
+        } else {
+          cmd = `${cmd} -tttt`;
+          cmd = `${cmd}`;
+        }
+
+        state.tcpCommand.value = cmd.trim();
+        $("copyTcp").disabled = false;
+        
+        let hint = "";
+        const filterCount = (includePeer && peerIp ? 1 : 0) + (additionalHosts ? additionalHosts.split("\n").filter(l => l.trim()).length : 0);
+        hint = `Filtering by ${filterCount} host/network filter${filterCount !== 1 ? 's' : ''}`;
+        if (output === "pcap" && rotation === "on") {
+          hint += ` | Rotation: ${rotationCount} files × ${rotationSize} MB each.`;
+        }
+        state.tcpHint.textContent = hint;
+      }
+
+      function buildSftp() {
+        const user = state.sftpUser.value.trim();
+        const pass = state.sftpPass.value.trim();
+        const host = state.sftpHost.value.trim();
+
+        // Check if all required fields are filled
+        if (!user || !pass || !host) {
+          state.sftpCommand.value = "# Fill in SFTP Username, Password, and Host to generate command";
+          $("copySftp").disabled = true;
+          return;
+        }
+
+        const uploadFile = state.sftpUploadFile.value.trim() || "/var/log/vpn_debugs.tgz";
+        const uploadPath = state.sftpUploadPath.value.trim() || "/incoming/";
+        const cmd = `sshpass -p '${pass}' sftp -o StrictHostKeyChecking=accept-new ${user}@${host} <<'EOF'\nput ${uploadFile} ${uploadPath}\nEOF`;
+
+        state.sftpCommand.value = cmd;
+        $("copySftp").disabled = false;
+      }
+
+      function versionLabel(v) {
+        if (v === "r8120") return "R81.20/R82+";
+        if (v === "r8110") return "R81.10";
+        if (v === "smb") return "SMB";
+        return v;
+      }
+
+      function buildDebugClear() {
+        const version = state.gwVersion.value;
+        $("debugClearVersionBadge").textContent = versionLabel(version);
+        
+        let commands = [];
+        
+        if (version === "smb") {
+          commands.push("fw debug sfwd off");
+          commands.push("vpn debug off");
+          commands.push("vpn debug ikeoff");
+          commands.push("rm -f $FWDIR/log/{vpn,ike}*");
+        } else if (version === "r8110") {
+          commands.push("vpn debug off");
+          commands.push("vpn debug ikeoff");
+          commands.push("ike debug off");
+          commands.push("rm -f $FWDIR/log/{vpn,ike,legacy}*");
+        } else {
+          commands.push("vpn debug off");
+          commands.push("vpn debug ikeoff");
+          commands.push("ike debug off");
+          commands.push("rm -f $FWDIR/log/{vpn,ike}*");
+        }
+        
+        state.debugClearCommands.value = commands.join("\n");
+        
+        let hint = "";
+        if (version === "smb") hint = "SMB: Clears vpn and ike logs (sfwd logs are not cleared)";
+        else if (version === "r8110") hint = "R81.10: Clears vpn, ike, and legacy logs";
+        else hint = "R81.20/R82+: Clears vpn and ike logs";
+        document.getElementById("debugClearHint").textContent = hint;
+      }
+
+      function buildDebugOn() {
+        const version = state.gwVersion.value;
+        $("debugOnVersionBadge").textContent = versionLabel(version);
+        
+        let commands = [];
+        let hint = "";
+        
+        if (version === "smb") {
+          commands.push("tail -F $FWDIR/log/sfwd.elg > /storage/sfwd_redirect.elg &");
+          commands.push("vpn debug trunc");
+          commands.push("fw debug sfwd on TDERROR_ALL_ALL=5");
+          commands.push("vpn debug ikeon");
+          hint = "SMB: Redirects sfwd log, enables sfwd + ike debugs";
+        } else {
+          commands.push("vpn debug trunc");
+          commands.push("vpn debug on TDERROR_ALL_ALL=5");
+          commands.push("ike debug trunc ALL=5");
+          hint = "Enables VPN/IKE debugging at level 5";
+        }
+        
+        state.debugOnCommands.value = commands.join("\n");
+        document.getElementById("debugOnHint").textContent = hint;
+      }
+
+      function buildCollection() {
+        const version = state.gwVersion.value;
+        $("collectionVersionBadge").textContent = versionLabel(version);
+        const peerIp = state.peerIp.value.trim();
+        const timestamp = "$(date +%y%m%d-%H%M)";
+        
+        let commands = [];
+        
+        // Turn off debugs (version-specific)
+        if (version === "smb") {
+          commands.push("fw debug sfwd off");
+          commands.push("vpn debug off");
+          commands.push("vpn debug ikeoff");
+        } else {
+          commands.push("vpn debug off");
+          commands.push("vpn debug ikeoff");
+          commands.push("ike debug off");
+        }
+        
+        // vpn tu tlist
+        commands.push("vpn tu tlist > $FWDIR/log/vpn_tu_tlist.txt");
+        
+        // vpn iked calc for R81.20/R82+
+        if (version === "r8120" && peerIp) {
+          commands.push(`vpn iked calc ${peerIp} 2>> $FWDIR/log/vpn_iked_calc.txt`);
+        } else if (version === "r8120") {
+          commands.push("vpn iked calc <peer_ip> 2>> $FWDIR/log/vpn_iked_calc.txt");
+        }
+        
+        // tar command with version-specific logs
+        let logFiles = "";
+        if (version === "smb") {
+          logFiles = "{ike,vpn,sfwd}*";
+        } else if (version === "r8110") {
+          logFiles = "{ike,vpn,legacy}*";
+        } else {
+          logFiles = "{ike,vpn}*";
+        }
+        
+        // Extra files to include
+        let extraFiles = [];
+        if (state.tarDrops.checked) {
+          const dropsFile = state.zdebugFile.value.trim() || "/var/log/drops.txt";
+          extraFiles.push(dropsFile);
+        }
+        if (state.tarTcpdump.checked) {
+          const tcpBase = state.tcpBaseName.value.trim() || "tcpdump";
+          extraFiles.push(`/var/log/${tcpBase}*`);
+        }
+        if (state.tarFwmonitor.checked) {
+          const fwBase = state.fwBaseName.value.trim() || "fwmonitor";
+          extraFiles.push(`/var/log/${fwBase}*`);
+        }
+        
+        const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
+        commands.push(`tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`);
+        
+        state.collectionCommands.value = commands.join("\n");
+        
+        // Update hint
+        let hint = "";
+        if (version === "smb") {
+          hint = "SMB: Includes sfwd logs";
+        } else if (version === "r8110") {
+          hint = "R81.10: Includes legacy logs";
+        } else if (version === "r8120") {
+          hint = "R81.20/R82+: Includes vpn iked calc";
+        }
+        document.getElementById("collectionHint").textContent = hint;
+      }
+
+      function buildZdebug() {
+        const filters = [];
+        const outputType = state.zdebugOutput.value;
+        const outputFile = state.zdebugFile.value.trim() || "/var/log/drops.txt";
+
+        // IP filters - only include if checkbox is checked
+        if (state.zdebugGw.checked && state.gwIp.value.trim()) {
+          filters.push(state.gwIp.value.trim());
+        }
+        if (state.zdebugPeer.checked && state.peerIp.value.trim()) {
+          filters.push(state.peerIp.value.trim());
+        }
+        if (state.zdebugLocal.checked && state.localHost.value.trim()) {
+          filters.push(state.localHost.value.trim());
+        }
+        if (state.zdebugRemote.checked && state.remoteHost.value.trim()) {
+          filters.push(state.remoteHost.value.trim());
+        }
+
+        // String filters
+        const strings = state.zdebugStrings.value
+          .split("\n")
+          .map(s => s.trim())
+          .filter(Boolean);
+        
+        filters.push(...strings);
+
+        let cmd = "fw ctl zdebug -T + drop";
+        
+        if (filters.length > 0) {
+          const grepPattern = filters.join("|");
+          cmd = `${cmd} | grep -iE '${grepPattern}'`;
+        }
+
+        if (outputType === "file") {
+          cmd = `${cmd} > ${outputFile}`;
+        }
+
+        state.zdebugCommand.value = cmd;
+      }
+
+      function autoResize() {
+        document.querySelectorAll("textarea[readonly]").forEach(ta => {
+          ta.style.height = "auto";
+          ta.style.height = Math.max(ta.scrollHeight + 4, 100) + "px";
+        });
+      }
+
+      function copy(id) {
+        const el = $(id);
+        el.select();
+        document.execCommand("copy");
+      }
+
+      function toggleRotationFields() {
+        const isOn = state.tcpRotation.value === "on";
+        $("rotationFieldsWrapper").classList.toggle("active", isOn);
+      }
+
+      function toggleZdebugFile() {
+        const isFile = state.zdebugOutput.value === "file";
+        state.zdebugFile.disabled = !isFile;
+        state.zdebugFile.style.opacity = isFile ? "1" : "0.4";
+      }
+
+      function toggleCaptureBaseNames() {
+        const isStdout = state.outputType.value === "stdout";
+        state.fwBaseName.disabled = isStdout;
+        state.tcpBaseName.disabled = isStdout;
+        state.fwBaseName.style.opacity = isStdout ? "0.4" : "1";
+        state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
+      }
+
+      function switchTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        // Deactivate all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        // Show selected tab content
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        // Activate selected tab button
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+      }
+
+      function wire() {
+        // Tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            switchTab(btn.dataset.tab);
+          });
+        });
+
+        Object.values(state).forEach((el) => {
+          if (el && el.addEventListener) {
+            const eventType = el.type === "checkbox" ? "change" : "input";
+            el.addEventListener(eventType, () => {
+              buildFwMonitor();
+              buildTcpdump();
+              buildZdebug();
+              buildDebugClear();
+              buildDebugOn();
+              buildCollection();
+              buildSftp();
+              autoResize();
+            });
+          }
+        });
+
+        // Full validation on blur (leaving the field)
+        [state.gwIp, state.peerIp, state.localHost, state.remoteHost].forEach(el => {
+          el.addEventListener("blur", () => {
+            validateIpFieldOnBlur(el);
+            buildFwMonitor();
+            buildTcpdump();
+            buildZdebug();
+            autoResize();
+          });
+          el.addEventListener("focus", () => {
+            el.dataset.blurValidated = "false";
+          });
+        });
+
+        // Additional hosts/networks + custom ports: strict on blur
+        [state.tcpAdditionalHosts, state.tcpPorts].forEach(el => {
+          el.addEventListener("blur", () => {
+            el.dataset.blurValidated = "true";
+            buildTcpdump();
+            autoResize();
+          });
+          el.addEventListener("focus", () => {
+            el.dataset.blurValidated = "false";
+          });
+        });
+
+        state.tcpRotation.addEventListener("change", () => {
+          toggleRotationFields();
+        });
+
+        state.zdebugOutput.addEventListener("change", () => {
+          toggleZdebugFile();
+        });
+        state.outputType.addEventListener("change", () => {
+          toggleCaptureBaseNames();
+        });
+
+        $("copyFw").addEventListener("click", () => copy("fwCommand"));
+        $("copyTcp").addEventListener("click", () => copy("tcpCommand"));
+        $("copyZdebug").addEventListener("click", () => copy("zdebugCommand"));
+        $("copyDebugClear").addEventListener("click", () => copy("debugClearCommands"));
+        $("copyDebugOn").addEventListener("click", () => copy("debugOnCommands"));
+        $("copyCollection").addEventListener("click", () => copy("collectionCommands"));
+        $("copySftp").addEventListener("click", () => copy("sftpCommand"));
+
+        $("clearFw").addEventListener("click", () => {
+          state.fwCommand.value = "";
+        });
+        $("clearTcp").addEventListener("click", () => {
+          state.tcpCommand.value = "";
+        });
+      }
+
+      // Theme toggle
+      function setTheme(mode) {
+        const root = document.documentElement;
+        const btns = [
+          { el: $("themeLight"), mode: "light" },
+          { el: $("themeDark"), mode: "dark" },
+          { el: $("themeAuto"), mode: "auto" }
+        ];
+        btns.forEach((b) => b.el.classList.toggle("active", b.mode === mode));
+
+        if (mode === "auto") {
+          root.removeAttribute("data-theme");
+          localStorage.removeItem("theme");
+        } else {
+          root.setAttribute("data-theme", mode);
+          localStorage.setItem("theme", mode);
+        }
+      }
+
+      $("themeLight").addEventListener("click", () => setTheme("light"));
+      $("themeDark").addEventListener("click", () => setTheme("dark"));
+      $("themeAuto").addEventListener("click", () => setTheme("auto"));
+
+      // Restore saved theme on load
+      (function () {
+        const saved = localStorage.getItem("theme");
+        if (saved === "light" || saved === "dark") {
+          setTheme(saved);
+        }
+      })();
+
+      wire();
+      toggleRotationFields();
+      toggleZdebugFile();
+      toggleCaptureBaseNames();
+      buildFwMonitor();
+      buildTcpdump();
+      buildZdebug();
+      buildDebugClear();
+      buildDebugOn();
+      buildCollection();
+      buildSftp();
+      autoResize();
+    </script>
+  </body>
+</html>
