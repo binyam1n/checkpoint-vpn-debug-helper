@@ -367,6 +367,7 @@
         <button class="tab-btn active" data-tab="debugging">VPN Debugging</button>
         <button class="tab-btn" data-tab="captures">Traffic Captures</button>
         <button class="tab-btn" data-tab="collection">File Collection</button>
+        <button class="tab-btn" data-tab="transfer">Transfer</button>
       </div>
 
       <div id="tab-debugging" class="tab-content active">
@@ -602,9 +603,11 @@
           <div class="hint" id="collectionHint"></div>
         </div>
       </section>
+      </div>
 
+      <div id="tab-transfer" class="tab-content">
       <section class="panel">
-        <h2>9) SFTP + sshpass</h2>
+        <h2>SFTP + sshpass</h2>
         <div class="grid grid-3">
           <div>
             <label for="sftpMode">Transfer Mode</label>
@@ -1088,15 +1091,34 @@
         const pass = state.sftpPass.value.trim();
         const host = state.sftpHost.value.trim();
 
-        // Update labels and paths based on mode
+        // Update labels and default paths based on mode and version
         if (mode === "upload") {
           $("sftpFileLabel").textContent = "Local file";
           $("sftpFileHint").textContent = "(path on gateway)";
           $("sftpPathLabel").textContent = "Remote destination";
           $("sftpPathHint").textContent = "(SFTP path)";
-          // Set upload defaults based on gateway version
-          const uploadPath = version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz";
-          state.sftpUploadFile.value = uploadPath;
+          // Update file path based on version: intelligently swap base directory if using standard paths
+          const currentPath = state.sftpUploadFile.value.trim();
+          const isStandardPath = (currentPath.startsWith("/var/log/") || currentPath.startsWith("/logs/")) &&
+                                  (currentPath.includes("vpn_debugs.tgz") || currentPath === "/var/log/vpn_debugs.tgz" || currentPath === "/logs/vpn_debugs.tgz");
+          const uploadDefault = version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz";
+          if (!currentPath || isStandardPath) {
+            state.sftpUploadFile.value = uploadDefault;
+          } else if (currentPath.startsWith("/var/log/")) {
+            // Path uses /var/log/ base - swap if switching to SMB
+            if (version === "smb") {
+              state.sftpUploadFile.value = currentPath.replace(/^\/var\/log\//, "/logs/");
+            }
+          } else if (currentPath.startsWith("/logs/")) {
+            // Path uses /logs/ base - swap if switching away from SMB
+            if (version !== "smb") {
+              state.sftpUploadFile.value = currentPath.replace(/^\/logs\//, "/var/log/");
+            }
+          } else {
+            // Path doesn't look like a valid upload path (e.g., /outgoing/script.sh from download mode)
+            // Reset to version-appropriate default
+            state.sftpUploadFile.value = uploadDefault;
+          }
           state.sftpUploadPath.value = "/incoming/";
         } else {
           $("sftpFileLabel").textContent = "Remote source";
