@@ -1337,7 +1337,7 @@
         
         filters.push(...strings);
 
-        let cmd = "fw ctl zdebug -T + drop";
+        let cmd = "fw ctl zdebug drop";
         
         if (filters.length > 0) {
           const grepPattern = filters.join("|");
