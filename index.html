@@ -404,7 +404,7 @@
             <select id="outputType">
               <option value="pcap">pcap file</option>
               <option value="txt">text file</option>
-              <option value="stdout">stdout</option>
+              <option value="stdout">stdout (live)</option>
             </select>
           </div>
           <div>
@@ -604,8 +604,15 @@
       </section>
 
       <section class="panel">
-        <h2>9) SFTP + sshpass Upload</h2>
+        <h2>9) SFTP + sshpass</h2>
         <div class="grid grid-3">
+          <div>
+            <label for="sftpMode">Transfer Mode</label>
+            <select id="sftpMode">
+              <option value="upload" selected>Upload</option>
+              <option value="download">Download</option>
+            </select>
+          </div>
           <div>
             <label for="sftpUser">SFTP Username</label>
             <input id="sftpUser" placeholder="SFTP_USERNAME" />
@@ -621,11 +628,11 @@
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
           <div>
-            <label for="sftpUploadFile">Local file <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(path on gateway)</span></label>
+            <label for="sftpUploadFile"><span id="sftpFileLabel">Local file</span> <span style="color: var(--muted); font-weight: 400; font-size: 16px;" id="sftpFileHint">(path on gateway)</span></label>
             <input id="sftpUploadFile" value="/var/log/vpn_debugs.tgz" />
           </div>
           <div>
-            <label for="sftpUploadPath">Remote destination <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(SFTP path)</span></label>
+            <label for="sftpUploadPath"><span id="sftpPathLabel">Remote destination</span> <span style="color: var(--muted); font-weight: 400; font-size: 16px;" id="sftpPathHint">(SFTP path)</span></label>
             <input id="sftpUploadPath" value="/incoming/" />
           </div>
         </div>
@@ -687,6 +694,7 @@
         tarTcpdump: $("tarTcpdump"),
         tarFwmonitor: $("tarFwmonitor"),
         collectionCommands: $("collectionCommands"),
+        sftpMode: $("sftpMode"),
         sftpUser: $("sftpUser"),
         sftpPass: $("sftpPass"),
         sftpHost: $("sftpHost"),
@@ -1074,9 +1082,30 @@
       }
 
       function buildSftp() {
+        const mode = state.sftpMode.value;
+        const version = state.gwVersion.value;
         const user = state.sftpUser.value.trim();
         const pass = state.sftpPass.value.trim();
         const host = state.sftpHost.value.trim();
+
+        // Update labels and paths based on mode
+        if (mode === "upload") {
+          $("sftpFileLabel").textContent = "Local file";
+          $("sftpFileHint").textContent = "(path on gateway)";
+          $("sftpPathLabel").textContent = "Remote destination";
+          $("sftpPathHint").textContent = "(SFTP path)";
+          // Set upload defaults based on gateway version
+          const uploadPath = version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz";
+          state.sftpUploadFile.value = uploadPath;
+          state.sftpUploadPath.value = "/incoming/";
+        } else {
+          $("sftpFileLabel").textContent = "Remote source";
+          $("sftpFileHint").textContent = "(SFTP path)";
+          $("sftpPathLabel").textContent = "Download to";
+          $("sftpPathHint").textContent = "(path on gateway)";
+          state.sftpUploadFile.value = "/outgoing/script.sh";
+          state.sftpUploadPath.value = "/var/tmp";
+        }
 
         // Check if all required fields are filled
         if (!user || !pass || !host) {
@@ -1085,9 +1114,19 @@
           return;
         }
 
-        const uploadFile = state.sftpUploadFile.value.trim() || "/var/log/vpn_debugs.tgz";
-        const uploadPath = state.sftpUploadPath.value.trim() || "/incoming/";
-        const cmd = `sshpass -p '${pass}' sftp -o StrictHostKeyChecking=accept-new ${user}@${host} <<'EOF'\nput ${uploadFile} ${uploadPath}\nEOF`;
+        const file = state.sftpUploadFile.value.trim();
+        const path = state.sftpUploadPath.value.trim();
+
+        let cmd;
+        if (mode === "upload") {
+          const uploadFile = file || (version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz");
+          const uploadPath = path || "/incoming/";
+          cmd = `sshpass -p '${pass}' sftp -o StrictHostKeyChecking=accept-new ${user}@${host} <<'EOF'\nput ${uploadFile} ${uploadPath}\nEOF`;
+        } else {
+          const remoteFile = file || "/outgoing/script.sh";
+          const localPath = path || "/var/tmp";
+          cmd = `sshpass -p '${pass}' sftp -o StrictHostKeyChecking=accept-new ${user}@${host}:${remoteFile} ${localPath}`;
+        }
 
         state.sftpCommand.value = cmd;
         $("copySftp").disabled = false;
@@ -1103,14 +1142,14 @@
       function buildDebugClear() {
         const version = state.gwVersion.value;
         $("debugClearVersionBadge").textContent = versionLabel(version);
-        
+
         let commands = [];
-        
+
         if (version === "smb") {
           commands.push("fw debug sfwd off");
           commands.push("vpn debug off");
           commands.push("vpn debug ikeoff");
-          commands.push("rm -f $FWDIR/log/{vpn,ike}*");
+          commands.push("rm -f $FWDIR/log/{vpn,ike,legacy}*");
         } else if (version === "r8110") {
           commands.push("vpn debug off");
           commands.push("vpn debug ikeoff");
@@ -1122,11 +1161,11 @@
           commands.push("ike debug off");
           commands.push("rm -f $FWDIR/log/{vpn,ike}*");
         }
-        
+
         state.debugClearCommands.value = commands.join("\n");
-        
+
         let hint = "";
-        if (version === "smb") hint = "SMB: Clears vpn and ike logs (sfwd logs are not cleared)";
+        if (version === "smb") hint = "SMB: Turns off debugs and clears vpn and ike logs";
         else if (version === "r8110") hint = "R81.10: Clears vpn, ike, and legacy logs";
         else hint = "R81.20/R82+: Clears vpn and ike logs";
         document.getElementById("debugClearHint").textContent = hint;
@@ -1135,23 +1174,20 @@
       function buildDebugOn() {
         const version = state.gwVersion.value;
         $("debugOnVersionBadge").textContent = versionLabel(version);
-        
+
         let commands = [];
         let hint = "";
-        
+
         if (version === "smb") {
-          commands.push("tail -F $FWDIR/log/sfwd.elg > /storage/sfwd_redirect.elg &");
-          commands.push("vpn debug trunc");
-          commands.push("fw debug sfwd on TDERROR_ALL_ALL=5");
-          commands.push("vpn debug ikeon");
-          hint = "SMB: Redirects sfwd log, enables sfwd + ike debugs";
+          commands.push("PIDFILE=/tmp/sfwd_tail.pid; OUTFILE=/storage/sfwd_redirect.elg; SRC=\"$FWDIR/log/sfwd.elg\"; PID=$(cat \"$PIDFILE\" 2>/dev/null); if [ -n \"$PID\" ] && ps -p \"$PID\" -o comm= 2>/dev/null | grep -qx tail; then kill \"$PID\" 2>/dev/null; fi; tail -F \"$SRC\" > \"$OUTFILE\" 2>/dev/null & echo $! > \"$PIDFILE\"; vpn debug trunc; fw debug sfwd on TDERROR_ALL_ALL=5; vpn debug ikeon");
+          hint = "SMB: Starts sfwd tail redirect with PID management, enables sfwd + ike debugs";
         } else {
           commands.push("vpn debug trunc");
           commands.push("vpn debug on TDERROR_ALL_ALL=5");
           commands.push("ike debug trunc ALL=5");
           hint = "Enables VPN/IKE debugging at level 5";
         }
-        
+
         state.debugOnCommands.value = commands.join("\n");
         document.getElementById("debugOnHint").textContent = hint;
       }
@@ -1161,64 +1197,75 @@
         $("collectionVersionBadge").textContent = versionLabel(version);
         const peerIp = state.peerIp.value.trim();
         const timestamp = "$(date +%y%m%d-%H%M)";
-        
+
         let commands = [];
-        
+
         // Turn off debugs (version-specific)
         if (version === "smb") {
-          commands.push("fw debug sfwd off");
-          commands.push("vpn debug off");
-          commands.push("vpn debug ikeoff");
+          commands.push("fw debug sfwd off; vpn debug off; vpn debug ikeoff; PIDFILE=/tmp/sfwd_tail.pid; PID=$(cat \"$PIDFILE\" 2>/dev/null); if [ -n \"$PID\" ] && ps -p \"$PID\" -o comm= 2>/dev/null | grep -qx tail; then kill \"$PID\" 2>/dev/null; fi; : > \"$PIDFILE\"");
+          commands.push("vpn tu tlist > $FWDIR/log/vpn_tu_tlist.txt");
         } else {
           commands.push("vpn debug off");
           commands.push("vpn debug ikeoff");
           commands.push("ike debug off");
+          commands.push("vpn tu tlist > $FWDIR/log/vpn_tu_tlist.txt");
         }
-        
-        // vpn tu tlist
-        commands.push("vpn tu tlist > $FWDIR/log/vpn_tu_tlist.txt");
-        
+
         // vpn iked calc for R81.20/R82+
         if (version === "r8120" && peerIp) {
           commands.push(`vpn iked calc ${peerIp} 2>> $FWDIR/log/vpn_iked_calc.txt`);
         } else if (version === "r8120") {
           commands.push("vpn iked calc <peer_ip> 2>> $FWDIR/log/vpn_iked_calc.txt");
         }
-        
+
         // tar command with version-specific logs
-        let logFiles = "";
+        let tarCmd = "";
         if (version === "smb") {
-          logFiles = "{ike,vpn,sfwd}*";
-        } else if (version === "r8110") {
-          logFiles = "{ike,vpn,legacy}*";
+          // SMB uses /logs/ instead of /var/log/
+          let extraFiles = [];
+          if (state.tarDrops.checked) {
+            extraFiles.push("/logs/drops.txt");
+          }
+          if (state.tarTcpdump.checked) {
+            extraFiles.push("/logs/tcpdump*");
+          }
+          if (state.tarFwmonitor.checked) {
+            extraFiles.push("/logs/fwmonitor*");
+          }
+          const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
+          tarCmd = `tar czvf /logs/vpn_debugs_${timestamp}.tgz $FWDIR/log/{ike,vpn,sfwd,legacy}*${extraStr}`;
         } else {
-          logFiles = "{ike,vpn}*";
+          let logFiles = "";
+          if (version === "r8110") {
+            logFiles = "{ike,vpn,legacy}*";
+          } else {
+            logFiles = "{ike,vpn}*";
+          }
+
+          let extraFiles = [];
+          if (state.tarDrops.checked) {
+            const dropsFile = state.zdebugFile.value.trim() || "/var/log/drops.txt";
+            extraFiles.push(dropsFile);
+          }
+          if (state.tarTcpdump.checked) {
+            const tcpBase = state.tcpBaseName.value.trim() || "tcpdump";
+            extraFiles.push(`/var/log/${tcpBase}*`);
+          }
+          if (state.tarFwmonitor.checked) {
+            const fwBase = state.fwBaseName.value.trim() || "fwmonitor";
+            extraFiles.push(`/var/log/${fwBase}*`);
+          }
+          const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
+          tarCmd = `tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`;
         }
-        
-        // Extra files to include
-        let extraFiles = [];
-        if (state.tarDrops.checked) {
-          const dropsFile = state.zdebugFile.value.trim() || "/var/log/drops.txt";
-          extraFiles.push(dropsFile);
-        }
-        if (state.tarTcpdump.checked) {
-          const tcpBase = state.tcpBaseName.value.trim() || "tcpdump";
-          extraFiles.push(`/var/log/${tcpBase}*`);
-        }
-        if (state.tarFwmonitor.checked) {
-          const fwBase = state.fwBaseName.value.trim() || "fwmonitor";
-          extraFiles.push(`/var/log/${fwBase}*`);
-        }
-        
-        const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
-        commands.push(`tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`);
-        
+
+        commands.push(tarCmd);
         state.collectionCommands.value = commands.join("\n");
-        
+
         // Update hint
         let hint = "";
         if (version === "smb") {
-          hint = "SMB: Includes sfwd logs";
+          hint = "SMB: Includes sfwd logs, uses /logs/ path";
         } else if (version === "r8110") {
           hint = "R81.10: Includes legacy logs";
         } else if (version === "r8120") {
@@ -1228,9 +1275,23 @@
       }
 
       function buildZdebug() {
+        const version = state.gwVersion.value;
         const filters = [];
         const outputType = state.zdebugOutput.value;
-        const outputFile = state.zdebugFile.value.trim() || "/var/log/drops.txt";
+        const defaultPath = version === "smb" ? "/logs/drops.txt" : "/var/log/drops.txt";
+
+        // Update the input field to match version
+        if (version === "smb") {
+          if (state.zdebugFile.value === "/var/log/drops.txt" || state.zdebugFile.value === "") {
+            state.zdebugFile.value = "/logs/drops.txt";
+          }
+        } else {
+          if (state.zdebugFile.value === "/logs/drops.txt" || state.zdebugFile.value === "") {
+            state.zdebugFile.value = "/var/log/drops.txt";
+          }
+        }
+
+        const outputFile = state.zdebugFile.value.trim() || defaultPath;
 
         // IP filters - only include if checkbox is checked
         if (state.zdebugGw.checked && state.gwIp.value.trim()) {
@@ -1374,6 +1435,10 @@
         });
         state.outputType.addEventListener("change", () => {
           toggleCaptureBaseNames();
+        });
+
+        state.sftpMode.addEventListener("change", () => {
+          buildSftp();
         });
 
         $("copyFw").addEventListener("click", () => copy("fwCommand"));
