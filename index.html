@@ -11,7 +11,7 @@
         --d-panel: #151a20;
         --d-text: #eef2f6;
         --d-muted: #aab3bf;
-        --d-accent: #60A5FA;
+        --d-accent: #60a5fa;
         --d-accent-2: #7ee787;
         --d-border: #2a323d;
         --d-danger: #ff7b72;
@@ -1125,8 +1125,13 @@
           $("sftpFileHint").textContent = "(SFTP path)";
           $("sftpPathLabel").textContent = "Download to";
           $("sftpPathHint").textContent = "(path on gateway)";
-          state.sftpUploadFile.value = "/outgoing/script.sh";
-          state.sftpUploadPath.value = "/var/tmp";
+          // In download mode, reset to download defaults unless user has custom values
+          const currentFile = state.sftpUploadFile.value.trim();
+          const currentPath = state.sftpUploadPath.value.trim();
+          const isUploadDefault = currentFile === "/var/log/vpn_debugs.tgz" || currentFile === "/logs/vpn_debugs.tgz";
+          const isPathUploadDefault = currentPath === "/incoming/";
+          if (!currentFile || isUploadDefault) state.sftpUploadFile.value = "/outgoing/script.sh";
+          if (!currentPath || isPathUploadDefault) state.sftpUploadPath.value = "/var/tmp";
         }
 
         // Check if all required fields are filled
