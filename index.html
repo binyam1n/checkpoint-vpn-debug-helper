@@ -261,6 +261,17 @@
         color: var(--btn-text);
         margin-left: 8px;
       }
+      .badge-optional {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-left: 6px;
+      }
       .success {
         color: var(--accent-2);
       }
@@ -312,6 +323,83 @@
       .tab-content.active {
         display: block;
       }
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--accent-2);
+        color: var(--panel);
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        animation: slideIn 0.2s ease, slideOut 0.2s ease 1.8s forwards;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+      textarea::placeholder {
+        color: var(--muted);
+        opacity: 0.6;
+      }
+      .output-empty {
+        color: var(--muted);
+        font-style: italic;
+        opacity: 0.7;
+      }
+      .collapsible-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+        padding: 12px 0;
+        border: none;
+        background: none;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .collapsible-header:hover {
+        color: var(--accent);
+      }
+      .collapsible-toggle {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        transition: transform 0.2s ease;
+        color: var(--accent);
+      }
+      .collapsible-toggle.open {
+        transform: rotate(90deg);
+      }
+      .collapsible-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+      }
+      .collapsible-content.open {
+        max-height: 500px;
+      }
     </style>
   </head>
   <body>
@@ -329,6 +417,24 @@
       </p>
 
       <section class="panel">
+        <button class="collapsible-header" id="startingHeader">
+          <span class="collapsible-toggle">▶</span>
+          Getting Started
+        </button>
+        <div class="collapsible-content" id="startingContent">
+          <p style="margin-top: 0;">Follow this workflow to debug VPN issues:</p>
+          <ol style="color: var(--muted); margin: 12px 0 16px;">
+            <li style="margin-bottom: 8px;"><strong style="color: var(--text);">Flow Details:</strong> Enter the gateway IPs and optional local/remote hosts</li>
+            <li style="margin-bottom: 8px;"><strong style="color: var(--text);">Debug Commands:</strong> Use the "VPN Debugging" tab to enable logs and collect debug data</li>
+            <li style="margin-bottom: 8px;"><strong style="color: var(--text);">Captures:</strong> Run traffic captures in the "Traffic Captures" tab to analyze packets</li>
+            <li style="margin-bottom: 8px;"><strong style="color: var(--text);">Collection:</strong> Package logs and captures into a tarball using "File Collection"</li>
+            <li style="margin-bottom: 8px;"><strong style="color: var(--text);">Transfer:</strong> Upload files to an SFTP server using the "Transfer" tab</li>
+          </ol>
+          <div class="hint" style="background: var(--panel); padding: 12px; border-radius: 8px; margin-bottom: 0;">💡 <strong>Tip:</strong> All commands are copy-ready. Commands update automatically as you fill in fields. Everything happens locally — no data is sent anywhere.</div>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2>1) Flow Details</h2>
         <div class="grid grid-2">
           <div>
@@ -342,11 +448,11 @@
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
           <div>
-            <label for="localHost">Local Host <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, behind local GW)</span></label>
+            <label for="localHost">Local Host <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">behind local GW</span></label>
             <input id="localHost" placeholder="e.g. 10.0.0.10" />
           </div>
           <div>
-            <label for="remoteHost">Remote Host <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, behind peer GW)</span></label>
+            <label for="remoteHost">Remote Host <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">behind peer GW</span></label>
             <input id="remoteHost" placeholder="e.g. 10.0.0.20" />
           </div>
         </div>
@@ -375,7 +481,7 @@
         <h2>2) Clear Old Debug Logs <span class="badge" id="debugClearVersionBadge"></span></h2>
         <div class="output" style="margin-top: 0;">
           <label for="debugClearCommands">Commands</label>
-          <textarea id="debugClearCommands" readonly style="min-height: 130px;"></textarea>
+          <textarea id="debugClearCommands" readonly style="min-height: 130px;" placeholder="Commands will appear here as you fill in the flow details"></textarea>
           <div class="row">
             <button id="copyDebugClear">Copy commands</button>
           </div>
@@ -387,7 +493,7 @@
         <h2>3) Turn On VPN Debugs <span class="badge" id="debugOnVersionBadge"></span></h2>
         <div class="output" style="margin-top: 0;">
           <label for="debugOnCommands">Commands</label>
-          <textarea id="debugOnCommands" readonly style="min-height: 130px;"></textarea>
+          <textarea id="debugOnCommands" readonly style="min-height: 130px;" placeholder="Commands will appear here as you fill in the flow details"></textarea>
           <div class="row">
             <button id="copyDebugOn">Copy commands</button>
           </div>
@@ -450,7 +556,7 @@
         <h2>5) fw monitor</h2>
         <div class="output" style="margin-top: 0;">
           <label for="fwCommand">Command</label>
-          <textarea id="fwCommand" readonly></textarea>
+          <textarea id="fwCommand" readonly placeholder="Command will appear here as you adjust output settings"></textarea>
           <div class="row">
             <button id="copyFw">Copy fw monitor</button>
             <button id="clearFw" class="secondary">Clear</button>
@@ -474,21 +580,21 @@
             </div>
           </div>
           <div>
-            <label for="tcpAdditionalHosts">Additional hosts/networks <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, one per line)</span></label>
+            <label for="tcpAdditionalHosts">Additional hosts/networks <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">one per line</span></label>
             <textarea id="tcpAdditionalHosts" placeholder="e.g.&#10;host 1.2.3.4&#10;net 10.0.0.0/24" style="min-height: 80px; font-size: 14px;"></textarea>
             <div class="hint">Combine multiple filters with "or" logic.</div>
           </div>
         </div>
-        <h3 style="font-size: 18px; margin: 20px 0 12px; color: var(--muted); font-weight: 600;">Additional filters <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></h3>
+        <h3 style="font-size: 18px; margin: 20px 0 12px; color: var(--muted); font-weight: 600;">Additional filters <span class="badge-optional">optional</span></h3>
         <div class="grid grid-2">
           <div>
-            <label for="tcpPorts">Custom ports <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(comma-separated)</span></label>
+            <label for="tcpPorts">Custom ports <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">comma-separated</span></label>
             <input id="tcpPorts" placeholder="e.g. 500,4500,18234" />
           </div>
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
           <div>
-            <label>IPsec protocols <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></label>
+            <label>IPsec protocols <span class="badge-optional">optional</span></label>
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
                 <input type="checkbox" id="tcpIsakmp" style="width: auto; margin: 0;" />
@@ -511,7 +617,7 @@
         </div>
         <div class="output" style="margin-top: 16px;">
           <label for="tcpCommand">Command</label>
-          <textarea id="tcpCommand" readonly></textarea>
+          <textarea id="tcpCommand" readonly placeholder="Command will appear here as you adjust filters"></textarea>
           <div class="row">
             <button id="copyTcp">Copy tcpdump</button>
             <button id="clearTcp" class="secondary">Clear</button>
@@ -537,7 +643,7 @@
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
           <div>
-            <label>Filter by IP addresses <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional)</span></label>
+            <label>Filter by IP addresses <span class="badge-optional">optional</span></label>
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; font-weight: 400;">
                 <input type="checkbox" id="zdebugGw" style="width: auto; margin: 0;" />
@@ -558,14 +664,14 @@
             </div>
           </div>
           <div>
-            <label for="zdebugStrings">Filter by strings <span style="color: var(--muted); font-weight: 400; font-size: 16px;">(optional, one per line)</span></label>
+            <label for="zdebugStrings">Filter by strings <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">one per line</span></label>
             <textarea id="zdebugStrings" placeholder="e.g.&#10;vpn_&#10;replay&#10;clear text packet&#10;according to the policy" style="min-height: 140px;"></textarea>
             <div class="hint">Case-insensitive string matches.</div>
           </div>
         </div>
         <div class="output" style="margin-top: 16px;">
           <label for="zdebugCommand">Command</label>
-          <textarea id="zdebugCommand" readonly></textarea>
+          <textarea id="zdebugCommand" readonly placeholder="Command will appear here as you apply filters"></textarea>
           <div class="row">
             <button id="copyZdebug">Copy zdebug</button>
           </div>
@@ -596,7 +702,7 @@
         </div>
         <div class="output" style="margin-top: 16px;">
           <label for="collectionCommands">Commands</label>
-          <textarea id="collectionCommands" readonly style="min-height: 200px;"></textarea>
+          <textarea id="collectionCommands" readonly style="min-height: 200px;" placeholder="Commands will appear here as you fill in the flow details"></textarea>
           <div class="row">
             <button id="copyCollection">Copy commands</button>
           </div>
@@ -641,7 +747,7 @@
         </div>
         <div class="output" style="margin-top: 16px;">
           <label for="sftpCommand">Command</label>
-          <textarea id="sftpCommand" readonly></textarea>
+          <textarea id="sftpCommand" readonly placeholder="Command will appear here as you fill in SFTP details"></textarea>
           <div class="row">
             <button id="copySftp">Copy command</button>
           </div>
@@ -1097,29 +1203,32 @@
           $("sftpFileHint").textContent = "(path on gateway)";
           $("sftpPathLabel").textContent = "Remote destination";
           $("sftpPathHint").textContent = "(SFTP path)";
-          // Update file path based on version: intelligently swap base directory if using standard paths
-          const currentPath = state.sftpUploadFile.value.trim();
-          const isStandardPath = (currentPath.startsWith("/var/log/") || currentPath.startsWith("/logs/")) &&
-                                  (currentPath.includes("vpn_debugs.tgz") || currentPath === "/var/log/vpn_debugs.tgz" || currentPath === "/logs/vpn_debugs.tgz");
+
+          const currentFile = state.sftpUploadFile.value.trim();
+          const currentPath = state.sftpUploadPath.value.trim();
           const uploadDefault = version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz";
-          if (!currentPath || isStandardPath) {
+
+          // If empty or looks like a download path (not upload-related), reset to default
+          if (!currentFile || currentFile.startsWith("/outgoing/")) {
             state.sftpUploadFile.value = uploadDefault;
-          } else if (currentPath.startsWith("/var/log/")) {
+          } else if (currentFile.startsWith("/var/log/")) {
             // Path uses /var/log/ base - swap if switching to SMB
             if (version === "smb") {
-              state.sftpUploadFile.value = currentPath.replace(/^\/var\/log\//, "/logs/");
+              state.sftpUploadFile.value = currentFile.replace(/^\/var\/log\//, "/logs/");
             }
-          } else if (currentPath.startsWith("/logs/")) {
+          } else if (currentFile.startsWith("/logs/")) {
             // Path uses /logs/ base - swap if switching away from SMB
             if (version !== "smb") {
-              state.sftpUploadFile.value = currentPath.replace(/^\/logs\//, "/var/log/");
+              state.sftpUploadFile.value = currentFile.replace(/^\/logs\//, "/var/log/");
             }
           } else {
-            // Path doesn't look like a valid upload path (e.g., /outgoing/script.sh from download mode)
-            // Reset to version-appropriate default
+            // Path doesn't look like a valid upload path - reset to default
             state.sftpUploadFile.value = uploadDefault;
           }
-          state.sftpUploadPath.value = "/incoming/";
+          // If empty or looks like a download path, reset to upload default
+          if (!currentPath || currentPath.startsWith("/var/tmp")) {
+            state.sftpUploadPath.value = "/incoming/";
+          }
         } else {
           $("sftpFileLabel").textContent = "Remote source";
           $("sftpFileHint").textContent = "(SFTP path)";
@@ -1128,9 +1237,11 @@
           // In download mode, reset to download defaults unless user has custom values
           const currentFile = state.sftpUploadFile.value.trim();
           const currentPath = state.sftpUploadPath.value.trim();
-          const isUploadDefault = currentFile === "/var/log/vpn_debugs.tgz" || currentFile === "/logs/vpn_debugs.tgz";
-          const isPathUploadDefault = currentPath === "/incoming/";
-          if (!currentFile || isUploadDefault) state.sftpUploadFile.value = "/outgoing/script.sh";
+          // Any path starting with /var/log/ or /logs/ is an upload path (upload-only dirs)
+          const isUploadPath = currentFile.startsWith("/var/log/") || currentFile.startsWith("/logs/");
+          // Any path starting with /incoming/ is an upload default path
+          const isPathUploadDefault = currentPath.startsWith("/incoming/");
+          if (!currentFile || isUploadPath) state.sftpUploadFile.value = "/outgoing/script.sh";
           if (!currentPath || isPathUploadDefault) state.sftpUploadPath.value = "/var/tmp";
         }
 
@@ -1367,6 +1478,15 @@
         const el = $(id);
         el.select();
         document.execCommand("copy");
+        showToast("Copied!");
+      }
+
+      function showToast(message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
       }
 
       function toggleRotationFields() {
@@ -1404,6 +1524,16 @@
       }
 
       function wire() {
+        // Collapsible Getting Started section
+        const startingHeader = $("startingHeader");
+        const startingContent = $("startingContent");
+        const startingToggle = startingHeader.querySelector('.collapsible-toggle');
+
+        startingHeader.addEventListener('click', () => {
+          startingContent.classList.toggle('open');
+          startingToggle.classList.toggle('open');
+        });
+
         // Tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -1413,6 +1543,10 @@
 
         Object.values(state).forEach((el) => {
           if (el && el.addEventListener) {
+            // Skip SFTP file/path fields - they should only update on mode/version change
+            if (el === state.sftpUploadFile || el === state.sftpUploadPath) {
+              return;
+            }
             const eventType = el.type === "checkbox" ? "change" : "input";
             el.addEventListener(eventType, () => {
               buildFwMonitor();
