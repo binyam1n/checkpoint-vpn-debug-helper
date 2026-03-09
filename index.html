@@ -1209,14 +1209,14 @@
           const uploadDefault = version === "smb" ? "/logs/vpn_debugs.tgz" : "/var/log/vpn_debugs.tgz";
 
           // If empty or looks like a download path (not upload-related), reset to default
-          if (!currentFile || currentFile.startsWith("/outgoing/")) {
+          if (!currentFile || currentFile.includes("/outgoing/")) {
             state.sftpUploadFile.value = uploadDefault;
-          } else if (currentFile.startsWith("/var/log/")) {
+          } else if (currentFile.includes("/var/log/")) {
             // Path uses /var/log/ base - swap if switching to SMB
             if (version === "smb") {
               state.sftpUploadFile.value = currentFile.replace(/^\/var\/log\//, "/logs/");
             }
-          } else if (currentFile.startsWith("/logs/")) {
+          } else if (currentFile.includes("/logs/")) {
             // Path uses /logs/ base - swap if switching away from SMB
             if (version !== "smb") {
               state.sftpUploadFile.value = currentFile.replace(/^\/logs\//, "/var/log/");
@@ -1226,7 +1226,7 @@
             state.sftpUploadFile.value = uploadDefault;
           }
           // If empty or looks like a download path, reset to upload default
-          if (!currentPath || currentPath.startsWith("/var/tmp")) {
+          if (!currentPath || currentPath.includes("/var/tmp")) {
             state.sftpUploadPath.value = "/incoming/";
           }
         } else {
@@ -1237,10 +1237,10 @@
           // In download mode, reset to download defaults unless user has custom values
           const currentFile = state.sftpUploadFile.value.trim();
           const currentPath = state.sftpUploadPath.value.trim();
-          // Any path starting with /var/log/ or /logs/ is an upload path (upload-only dirs)
-          const isUploadPath = currentFile.startsWith("/var/log/") || currentFile.startsWith("/logs/");
-          // Any path starting with /incoming/ is an upload default path
-          const isPathUploadDefault = currentPath.startsWith("/incoming/");
+          // Any path containing /var/log/ or /logs/ is an upload path (catches corrupted/prepended values)
+          const isUploadPath = currentFile.includes("/var/log/") || currentFile.includes("/logs/");
+          // Any path containing /incoming/ is an upload default path
+          const isPathUploadDefault = currentPath.includes("/incoming/");
           if (!currentFile || isUploadPath) state.sftpUploadFile.value = "/outgoing/script.sh";
           if (!currentPath || isPathUploadDefault) state.sftpUploadPath.value = "/var/tmp";
         }
