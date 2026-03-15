@@ -1527,7 +1527,8 @@
         const version = state.gwVersion.value;
         $("collectionVersionBadge").textContent = versionLabel(version);
         const peerIp = state.peerIp.value.trim();
-        const timestamp = "$(date +%y%m%d-%H%M)";
+        const timestamp = "$(date +%y%m%d_%H%M)";
+        const hostname = "$(hostname)";
 
         let commands = [];
 
@@ -1558,21 +1559,15 @@
             extraFiles.push("/logs/drops.txt");
           }
           if (state.tarTcpdump.checked) {
-            const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump.pcap";
-            // Remove extension, then convert /var/log/ to /logs/
-            const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
-            const fixedTcpPath = tcpBase.replace(/^\/var\/log\//, "/logs/");
-            extraFiles.push(`${fixedTcpPath}*`);
+            const tcpPath = state.tcpBaseName.value.trim() || "/logs/tcpdump.pcap";
+            extraFiles.push(tcpPath);
           }
           if (state.tarFwmonitor.checked) {
-            const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor.pcap";
-            // Remove extension, then convert /var/log/ to /logs/
-            const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
-            const fixedFwPath = fwBase.replace(/^\/var\/log\//, "/logs/");
-            extraFiles.push(`${fixedFwPath}*`);
+            const fwPath = state.fwBaseName.value.trim() || "/logs/fwmonitor.pcap";
+            extraFiles.push(fwPath);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
-          tarCmd = `tar czvf /logs/vpn_debugs_${timestamp}.tgz $FWDIR/log/{ike,vpn,sfwd,legacy}*${extraStr}`;
+          tarCmd = `tar czvf /logs/vpn_debugs_${timestamp}_${hostname}.tgz $FWDIR/log/{ike,vpn,sfwd,legacy}*${extraStr}`;
         } else {
           let logFiles = "";
           if (version === "r8110") {
@@ -1588,16 +1583,14 @@
           }
           if (state.tarTcpdump.checked) {
             const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump.pcap";
-            const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
-            extraFiles.push(`${tcpBase}*`);
+            extraFiles.push(tcpPath);
           }
           if (state.tarFwmonitor.checked) {
             const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor.pcap";
-            const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
-            extraFiles.push(`${fwBase}*`);
+            extraFiles.push(fwPath);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
-          tarCmd = `tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`;
+          tarCmd = `tar czvf /var/log/vpn_debugs_${timestamp}_${hostname}.tgz $FWDIR/log/${logFiles}${extraStr}`;
         }
 
         commands.push(tarCmd);
@@ -1605,9 +1598,9 @@
 
         // Update hint
         let hint = "";
-        let outputPath = "/var/log/vpn_debugs_YYMMDD-HHMM.tgz";
+        let outputPath = "/var/log/vpn_debugs_YYMMDD_HHMM_HOSTNAME.tgz";
         if (version === "smb") {
-          outputPath = "/logs/vpn_debugs_YYMMDD-HHMM.tgz";
+          outputPath = "/logs/vpn_debugs_YYMMDD_HHMM_HOSTNAME.tgz";
           hint = "Turns off all debugging, collects VPN/IKE logs + sfwd logs. Output: " + outputPath;
         } else if (version === "r8110") {
           hint = "Turns off all debugging, collects VPN/IKE/legacy logs. Output: " + outputPath;
