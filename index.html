@@ -1049,11 +1049,11 @@
         const localVal = state.localHost.value.trim();
         const remoteVal = state.remoteHost.value.trim();
 
-        // Allow "0" as special value for universal capture
-        const gw = (gwVal === "0" || isValidIPv4(gwVal)) ? gwVal : "";
-        const peer = (peerVal === "0" || isValidIPv4(peerVal)) ? peerVal : "";
-        const local = (localVal === "0" || isValidIPv4(localVal)) ? localVal : "";
-        const remote = (remoteVal === "0" || isValidIPv4(remoteVal)) ? remoteVal : "";
+        // Only allow valid IPs (not "0" — that's for all-zeros case only in buildFwMonitor)
+        const gw = isValidIPv4(gwVal) ? gwVal : "";
+        const peer = isValidIPv4(peerVal) ? peerVal : "";
+        const local = isValidIPv4(localVal) ? localVal : "";
+        const remote = isValidIPv4(remoteVal) ? remoteVal : "";
 
         const portsEnabled = state.fwEnablePorts.checked;
         const protoEnabled = state.fwEnableProtocol.checked;
