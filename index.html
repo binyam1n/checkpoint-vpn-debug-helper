@@ -1098,7 +1098,8 @@
         // If any "0" and no valid IPs, use universal capture IMMEDIATELY
         if (hasAnyZero && !hasAnyValidIP) {
           const output = state.outputType.value;
-          const base = state.fwBaseName.value.trim() || "fwmonitor";
+          const basePath = state.fwBaseName.value.trim() || "fwmonitor";
+          const base = basePath.replace(/\.(pcap|txt)$/, "");
           const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
           let cmd = `fw monitor ${timeFlag} -F "0,0,0,0,0"`.replace(/\s+/g, " ").trim();
           if (output === "pcap") {
@@ -1176,7 +1177,8 @@
 
         const filters = baseFilters();
         const output = state.outputType.value;
-        const base = state.fwBaseName.value.trim() || "fwmonitor";
+        const basePath = state.fwBaseName.value.trim() || "fwmonitor";
+        const base = basePath.replace(/\.(pcap|txt)$/, "");
         const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
 
         let cmd = `fw monitor ${timeFlag} ${filters}`.replace(/\s+/g, " ").trim();
@@ -1198,7 +1200,8 @@
 
       function buildTcpdump() {
         const output = state.outputType.value;
-        const base = state.tcpBaseName.value.trim() || "tcpdump";
+        const basePath = state.tcpBaseName.value.trim() || "tcpdump";
+        const base = basePath.replace(/\.(pcap|txt)$/, "");
         const iface = "any";
         const peerIp = state.peerIp.value.trim();
         const rotation = state.tcpRotation.value;
@@ -1651,6 +1654,13 @@
         state.tcpBaseName.disabled = isStdout;
         state.fwBaseName.style.opacity = isStdout ? "0.4" : "1";
         state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
+
+        // Update display to show the extension that will be used
+        const fwBase = state.fwBaseName.value.trim().replace(/\.(pcap|txt)$/, "");
+        const tcpBase = state.tcpBaseName.value.trim().replace(/\.(pcap|txt)$/, "");
+        const ext = outputType === "txt" ? ".txt" : ".pcap";
+        state.fwBaseName.value = fwBase + ext;
+        state.tcpBaseName.value = tcpBase + ext;
       }
 
       function toggleFwPorts() {
