@@ -1040,11 +1040,11 @@
         const local = isValidIPv4(state.localHost.value.trim()) ? state.localHost.value.trim() : "";
         const remote = isValidIPv4(state.remoteHost.value.trim()) ? state.remoteHost.value.trim() : "";
 
-        // Check if we have at least one valid pair
-        const hasGwPeerPair = gw && peer;
-        const hasLocalRemotePair = local && remote;
+        // Check if we have at least one valid IP
+        const hasGatewayIp = gw || peer;
+        const hasHostIp = local || remote;
 
-        if (!hasGwPeerPair && !hasLocalRemotePair) {
+        if (!hasGatewayIp && !hasHostIp) {
           state.fwCommand.value = "# Fill in at least Gateway IPs OR Host IPs to generate command";
           $("copyFw").disabled = true;
           state.fwHint.textContent = "Required: Gateway IPs OR Host IPs";
