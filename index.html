@@ -1534,12 +1534,14 @@
 
         // Update hint
         let hint = "";
+        let outputPath = "/var/log/vpn_debugs_YYMMDD-HHMM.tgz";
         if (version === "smb") {
-          hint = "SMB: Includes sfwd logs, uses /logs/ path";
+          outputPath = "/logs/vpn_debugs_YYMMDD-HHMM.tgz";
+          hint = "Turns off all debugging, collects VPN/IKE logs + sfwd logs. Output: " + outputPath;
         } else if (version === "r8110") {
-          hint = "R81.10: Includes legacy logs";
+          hint = "Turns off all debugging, collects VPN/IKE/legacy logs. Output: " + outputPath;
         } else if (version === "r8120") {
-          hint = "R81.20/R82+: Includes vpn iked calc";
+          hint = "Turns off all debugging, collects VPN/IKE logs + IKE calc data. Output: " + outputPath;
         }
         document.getElementById("collectionHint").textContent = hint;
       }
