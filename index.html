@@ -1127,15 +1127,23 @@
           }
         }
 
-        // Check for special case: all zeros (universal capture)
+        // Check for valid IPs and zeros
         const sp = state.fwEnablePorts.checked && state.fwSrcPort.value.trim() ? state.fwSrcPort.value.trim() : "0";
         const dp = state.fwEnablePorts.checked && state.fwDstPort.value.trim() ? state.fwDstPort.value.trim() : "0";
         const proto = state.fwEnableProtocol.checked && state.fwProtocol.value.trim() ? state.fwProtocol.value.trim() : "0";
 
-        const allZeros = (gwVal === "0" && peerVal === "0" && localVal === "0" && remoteVal === "0" &&
-                          sp === "0" && dp === "0" && proto === "0");
+        // Check if any field has a valid IPv4
+        const hasValidGw = isValidIPv4(gwVal);
+        const hasValidPeer = isValidIPv4(peerVal);
+        const hasValidLocal = isValidIPv4(localVal);
+        const hasValidRemote = isValidIPv4(remoteVal);
+        const hasAnyValidIP = hasValidGw || hasValidPeer || hasValidLocal || hasValidRemote;
 
-        if (allZeros) {
+        // Check if any field is "0"
+        const hasAnyZero = gwVal === "0" || peerVal === "0" || localVal === "0" || remoteVal === "0";
+
+        // If no valid IPs and at least one is "0", use universal capture
+        if (!hasAnyValidIP && hasAnyZero) {
           // Special case: universal capture with single all-zeros filter
           const output = state.outputType.value;
           const base = state.fwBaseName.value.trim() || "fwmonitor";
@@ -1156,7 +1164,7 @@
           return;
         }
 
-        // Use only complete valid IPs for command generation (not "0" — that's only for all-zeros case)
+        // Use only complete valid IPs for command generation
         const gw = isValidIPv4(gwVal) ? gwVal : "";
         const peer = isValidIPv4(peerVal) ? peerVal : "";
         const local = isValidIPv4(localVal) ? localVal : "";
