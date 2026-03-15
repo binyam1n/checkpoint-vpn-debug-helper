@@ -1095,6 +1095,8 @@
         const hasValidRemote = isValidIPv4(remoteVal);
         const hasAnyValidIP = hasValidGw || hasValidPeer || hasValidLocal || hasValidRemote;
 
+        console.log("buildFwMonitor:", {gwVal, peerVal, localVal, remoteVal, hasAnyZero, hasAnyValidIP});
+
         // If any "0" and no valid IPs, use universal capture IMMEDIATELY
         if (hasAnyZero && !hasAnyValidIP) {
           const output = state.outputType.value;
