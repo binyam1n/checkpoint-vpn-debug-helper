@@ -1708,17 +1708,37 @@
       function toggleCaptureBaseNames() {
         const outputType = state.outputType.value;
         const isStdout = outputType === "stdout";
+        const version = state.gwVersion.value;
+
         state.fwBaseName.disabled = isStdout;
         state.tcpBaseName.disabled = isStdout;
         state.fwBaseName.style.opacity = isStdout ? "0.4" : "1";
         state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
 
-        // Update display to show the extension that will be used
-        const fwBase = state.fwBaseName.value.trim().replace(/\.(pcap|txt)$/, "");
-        const tcpBase = state.tcpBaseName.value.trim().replace(/\.(pcap|txt)$/, "");
+        // Update display with version-aware paths and extensions
+        const fwPath = state.fwBaseName.value.trim();
+        const tcpPath = state.tcpBaseName.value.trim();
+
+        // Strip extension
+        const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
+        const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
+
+        // Convert paths based on version
+        let fwConverted = fwBase;
+        let tcpConverted = tcpBase;
+
+        if (version === "smb") {
+          fwConverted = fwBase.replace(/^\/var\/log\//, "/logs/");
+          tcpConverted = tcpBase.replace(/^\/var\/log\//, "/logs/");
+        } else {
+          fwConverted = fwBase.replace(/^\/logs\//, "/var/log/");
+          tcpConverted = tcpBase.replace(/^\/logs\//, "/var/log/");
+        }
+
+        // Add extension
         const ext = outputType === "txt" ? ".txt" : ".pcap";
-        state.fwBaseName.value = fwBase + ext;
-        state.tcpBaseName.value = tcpBase + ext;
+        state.fwBaseName.value = fwConverted + ext;
+        state.tcpBaseName.value = tcpConverted + ext;
       }
 
       function toggleFwPorts() {
@@ -1827,6 +1847,10 @@
           toggleZdebugFile();
         });
         state.outputType.addEventListener("change", () => {
+          toggleCaptureBaseNames();
+        });
+
+        state.gwVersion.addEventListener("change", () => {
           toggleCaptureBaseNames();
         });
 
