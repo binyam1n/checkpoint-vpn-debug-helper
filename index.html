@@ -1044,10 +1044,16 @@
       }
 
       function baseFilters() {
-        const gw = state.gwIp.value.trim();
-        const peer = state.peerIp.value.trim();
-        const local = state.localHost.value.trim();
-        const remote = state.remoteHost.value.trim();
+        const gwVal = state.gwIp.value.trim();
+        const peerVal = state.peerIp.value.trim();
+        const localVal = state.localHost.value.trim();
+        const remoteVal = state.remoteHost.value.trim();
+
+        // Allow "0" as special value for universal capture
+        const gw = (gwVal === "0" || isValidIPv4(gwVal)) ? gwVal : "";
+        const peer = (peerVal === "0" || isValidIPv4(peerVal)) ? peerVal : "";
+        const local = (localVal === "0" || isValidIPv4(localVal)) ? localVal : "";
+        const remote = (remoteVal === "0" || isValidIPv4(remoteVal)) ? remoteVal : "";
 
         const portsEnabled = state.fwEnablePorts.checked;
         const protoEnabled = state.fwEnableProtocol.checked;
@@ -1081,11 +1087,17 @@
         const localOk = validateIpField(state.localHost);
         const remoteOk = validateIpField(state.remoteHost);
 
-        // If any field has an obvious error, block
-        const gwObvious = hasObviousIpError(state.gwIp.value.trim());
-        const peerObvious = hasObviousIpError(state.peerIp.value.trim());
-        const localObvious = hasObviousIpError(state.localHost.value.trim());
-        const remoteObvious = hasObviousIpError(state.remoteHost.value.trim());
+        // Get raw values
+        const gwVal = state.gwIp.value.trim();
+        const peerVal = state.peerIp.value.trim();
+        const localVal = state.localHost.value.trim();
+        const remoteVal = state.remoteHost.value.trim();
+
+        // If any field has an obvious error (except "0"), block
+        const gwObvious = gwVal !== "0" && hasObviousIpError(gwVal);
+        const peerObvious = peerVal !== "0" && hasObviousIpError(peerVal);
+        const localObvious = localVal !== "0" && hasObviousIpError(localVal);
+        const remoteObvious = remoteVal !== "0" && hasObviousIpError(remoteVal);
 
         if (gwObvious || peerObvious || localObvious || remoteObvious) {
           state.fwCommand.value = "# Fix invalid IP addresses above";
@@ -1115,11 +1127,40 @@
           }
         }
 
-        // Use only complete valid IPs for command generation
-        const gw = isValidIPv4(state.gwIp.value.trim()) ? state.gwIp.value.trim() : "";
-        const peer = isValidIPv4(state.peerIp.value.trim()) ? state.peerIp.value.trim() : "";
-        const local = isValidIPv4(state.localHost.value.trim()) ? state.localHost.value.trim() : "";
-        const remote = isValidIPv4(state.remoteHost.value.trim()) ? state.remoteHost.value.trim() : "";
+        // Check for special case: all zeros (universal capture)
+        const sp = state.fwEnablePorts.checked && state.fwSrcPort.value.trim() ? state.fwSrcPort.value.trim() : "0";
+        const dp = state.fwEnablePorts.checked && state.fwDstPort.value.trim() ? state.fwDstPort.value.trim() : "0";
+        const proto = state.fwEnableProtocol.checked && state.fwProtocol.value.trim() ? state.fwProtocol.value.trim() : "0";
+
+        const allZeros = (gwVal === "0" && peerVal === "0" && localVal === "0" && remoteVal === "0" &&
+                          sp === "0" && dp === "0" && proto === "0");
+
+        if (allZeros) {
+          // Special case: universal capture with single all-zeros filter
+          const output = state.outputType.value;
+          const base = state.fwBaseName.value.trim() || "fwmonitor";
+          const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
+
+          let cmd = `fw monitor ${timeFlag} -F "0,0,0,0,0"`.replace(/\s+/g, " ").trim();
+          if (output === "pcap") {
+            cmd = `${cmd} -w -o ${base}.pcap`;
+          } else if (output === "txt") {
+            cmd = `${cmd} > ${base}.txt`;
+          } else {
+            cmd = `${cmd}`;
+          }
+
+          state.fwCommand.value = cmd.trim();
+          $("copyFw").disabled = false;
+          state.fwHint.textContent = "⚠️ Universal capture (0.0.0.0:0 ↔ 0.0.0.0:0, any protocol). This will capture all traffic.";
+          return;
+        }
+
+        // Use only complete valid IPs for command generation (allow "0" as special case)
+        const gw = (gwVal === "0" || isValidIPv4(gwVal)) ? gwVal : "";
+        const peer = (peerVal === "0" || isValidIPv4(peerVal)) ? peerVal : "";
+        const local = (localVal === "0" || isValidIPv4(localVal)) ? localVal : "";
+        const remote = (remoteVal === "0" || isValidIPv4(remoteVal)) ? remoteVal : "";
 
         // Check if we have at least one valid IP
         const hasGatewayIp = gw || peer;
