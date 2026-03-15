@@ -1651,21 +1651,6 @@
         state.tcpBaseName.disabled = isStdout;
         state.fwBaseName.style.opacity = isStdout ? "0.4" : "1";
         state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
-
-        // Update file extensions based on output type
-        if (!isStdout) {
-          const fwPath = state.fwBaseName.value.trim();
-          const tcpPath = state.tcpBaseName.value.trim();
-
-          // Remove existing extension
-          const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
-          const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
-
-          // Add new extension
-          const ext = outputType === "txt" ? ".txt" : ".pcap";
-          state.fwBaseName.value = fwBase + ext;
-          state.tcpBaseName.value = tcpBase + ext;
-        }
       }
 
       function toggleFwPorts() {
