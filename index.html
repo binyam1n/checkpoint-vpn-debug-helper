@@ -556,12 +556,12 @@
             </select>
           </div>
           <div>
-            <label for="fwBaseName">fw monitor filename</label>
-            <input id="fwBaseName" value="fwmonitor" />
+            <label for="fwBaseName">fw monitor output path</label>
+            <input id="fwBaseName" value="/var/log/fwmonitor" />
           </div>
           <div>
-            <label for="tcpBaseName">tcpdump filename</label>
-            <input id="tcpBaseName" value="tcpdump" />
+            <label for="tcpBaseName">tcpdump output path</label>
+            <input id="tcpBaseName" value="/var/log/tcpdump" />
           </div>
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
@@ -1497,10 +1497,16 @@
             extraFiles.push("/logs/drops.txt");
           }
           if (state.tarTcpdump.checked) {
-            extraFiles.push("/logs/tcpdump*");
+            const tcpPath = state.tcpBaseName.value.trim() || "/logs/tcpdump";
+            // If user entered full path with /var/log/, replace with /logs/
+            const fixedTcpPath = tcpPath.replace(/^\/var\/log\//, "/logs/");
+            extraFiles.push(`${fixedTcpPath}*`);
           }
           if (state.tarFwmonitor.checked) {
-            extraFiles.push("/logs/fwmonitor*");
+            const fwPath = state.fwBaseName.value.trim() || "/logs/fwmonitor";
+            // If user entered full path with /var/log/, replace with /logs/
+            const fixedFwPath = fwPath.replace(/^\/var\/log\//, "/logs/");
+            extraFiles.push(`${fixedFwPath}*`);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
           tarCmd = `tar czvf /logs/vpn_debugs_${timestamp}.tgz $FWDIR/log/{ike,vpn,sfwd,legacy}*${extraStr}`;
@@ -1518,12 +1524,12 @@
             extraFiles.push(dropsFile);
           }
           if (state.tarTcpdump.checked) {
-            const tcpBase = state.tcpBaseName.value.trim() || "tcpdump";
-            extraFiles.push(`/var/log/${tcpBase}*`);
+            const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump";
+            extraFiles.push(`${tcpPath}*`);
           }
           if (state.tarFwmonitor.checked) {
-            const fwBase = state.fwBaseName.value.trim() || "fwmonitor";
-            extraFiles.push(`/var/log/${fwBase}*`);
+            const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor";
+            extraFiles.push(`${fwPath}*`);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
           tarCmd = `tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`;
