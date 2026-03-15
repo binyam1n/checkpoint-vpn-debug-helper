@@ -1081,17 +1081,42 @@
       }
 
       function buildFwMonitor() {
-        // Validate IP fields — soft check while typing
-        const gwOk = validateIpField(state.gwIp);
-        const peerOk = validateIpField(state.peerIp);
-        const localOk = validateIpField(state.localHost);
-        const remoteOk = validateIpField(state.remoteHost);
-
-        // Get raw values
+        // Get raw values FIRST
         const gwVal = state.gwIp.value.trim();
         const peerVal = state.peerIp.value.trim();
         const localVal = state.localHost.value.trim();
         const remoteVal = state.remoteHost.value.trim();
+
+        // Check for "0" FIRST - highest priority
+        const hasAnyZero = gwVal === "0" || peerVal === "0" || localVal === "0" || remoteVal === "0";
+        const hasValidGw = isValidIPv4(gwVal);
+        const hasValidPeer = isValidIPv4(peerVal);
+        const hasValidLocal = isValidIPv4(localVal);
+        const hasValidRemote = isValidIPv4(remoteVal);
+        const hasAnyValidIP = hasValidGw || hasValidPeer || hasValidLocal || hasValidRemote;
+
+        // If any "0" and no valid IPs, use universal capture IMMEDIATELY
+        if (hasAnyZero && !hasAnyValidIP) {
+          const output = state.outputType.value;
+          const base = state.fwBaseName.value.trim() || "fwmonitor";
+          const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
+          let cmd = `fw monitor ${timeFlag} -F "0,0,0,0,0"`.replace(/\s+/g, " ").trim();
+          if (output === "pcap") {
+            cmd = `${cmd} -w -o ${base}.pcap`;
+          } else if (output === "txt") {
+            cmd = `${cmd} > ${base}.txt`;
+          }
+          state.fwCommand.value = cmd.trim();
+          $("copyFw").disabled = false;
+          state.fwHint.textContent = "⚠️ UNIVERSAL CAPTURE: Can generate GBs of traffic in seconds depending on traffic volume. Be very careful.";
+          return;
+        }
+
+        // Validate IP fields — soft check while typing (only after zero check)
+        const gwOk = validateIpField(state.gwIp);
+        const peerOk = validateIpField(state.peerIp);
+        const localOk = validateIpField(state.localHost);
+        const remoteOk = validateIpField(state.remoteHost);
 
         // If any field has an obvious error (except "0"), block
         const gwObvious = gwVal !== "0" && hasObviousIpError(gwVal);
@@ -1127,42 +1152,10 @@
           }
         }
 
-        // Check for valid IPs and zeros
+        // Port and protocol values (for normal filtering when not using universal capture)
         const sp = state.fwEnablePorts.checked && state.fwSrcPort.value.trim() ? state.fwSrcPort.value.trim() : "0";
         const dp = state.fwEnablePorts.checked && state.fwDstPort.value.trim() ? state.fwDstPort.value.trim() : "0";
         const proto = state.fwEnableProtocol.checked && state.fwProtocol.value.trim() ? state.fwProtocol.value.trim() : "0";
-
-        // Check if any field has a valid IPv4
-        const hasValidGw = isValidIPv4(gwVal);
-        const hasValidPeer = isValidIPv4(peerVal);
-        const hasValidLocal = isValidIPv4(localVal);
-        const hasValidRemote = isValidIPv4(remoteVal);
-        const hasAnyValidIP = hasValidGw || hasValidPeer || hasValidLocal || hasValidRemote;
-
-        // Check if any field is "0"
-        const hasAnyZero = gwVal === "0" || peerVal === "0" || localVal === "0" || remoteVal === "0";
-
-        // If no valid IPs and at least one is "0", use universal capture
-        if (!hasAnyValidIP && hasAnyZero) {
-          // Special case: universal capture with single all-zeros filter
-          const output = state.outputType.value;
-          const base = state.fwBaseName.value.trim() || "fwmonitor";
-          const timeFlag = state.fwTimestamp.value === "on" ? "-T" : "";
-
-          let cmd = `fw monitor ${timeFlag} -F "0,0,0,0,0"`.replace(/\s+/g, " ").trim();
-          if (output === "pcap") {
-            cmd = `${cmd} -w -o ${base}.pcap`;
-          } else if (output === "txt") {
-            cmd = `${cmd} > ${base}.txt`;
-          } else {
-            cmd = `${cmd}`;
-          }
-
-          state.fwCommand.value = cmd.trim();
-          $("copyFw").disabled = false;
-          state.fwHint.textContent = "⚠️ UNIVERSAL CAPTURE: Can generate GBs of traffic in seconds depending on traffic volume. Be very careful.";
-          return;
-        }
 
         // Use only complete valid IPs for command generation
         const gw = isValidIPv4(gwVal) ? gwVal : "";
