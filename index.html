@@ -604,15 +604,49 @@
         <h3 style="font-size: 18px; margin: 0 0 12px; color: var(--muted); font-weight: 600;">Host/Network filters</h3>
         <div class="grid grid-2">
           <div>
+            <label for="tcpGwDisplay">Gateway IP from section 1</label>
+            <input id="tcpGwDisplay" readonly style="background: var(--panel); cursor: default; color: var(--accent);" />
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0;">
+                <input type="checkbox" id="tcpIncludeGw" style="width: auto; margin: 0;" />
+                <span>Include in filter</span>
+              </label>
+            </div>
+          </div>
+          <div>
             <label for="tcpPeerDisplay">Peer IP from section 1</label>
             <input id="tcpPeerDisplay" readonly style="background: var(--panel); cursor: default; color: var(--accent);" />
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
               <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0;">
                 <input type="checkbox" id="tcpIncludePeer" checked style="width: auto; margin: 0;" />
-                <span>Include peer IP in filter</span>
+                <span>Include in filter</span>
               </label>
             </div>
           </div>
+        </div>
+        <div class="grid grid-2">
+          <div>
+            <label for="tcpLocalDisplay">Local Host from section 1</label>
+            <input id="tcpLocalDisplay" readonly style="background: var(--panel); cursor: default; color: var(--accent);" />
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0;">
+                <input type="checkbox" id="tcpIncludeLocal" style="width: auto; margin: 0;" />
+                <span>Include in filter</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label for="tcpRemoteDisplay">Remote Host from section 1</label>
+            <input id="tcpRemoteDisplay" readonly style="background: var(--panel); cursor: default; color: var(--accent);" />
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 0;">
+                <input type="checkbox" id="tcpIncludeRemote" style="width: auto; margin: 0;" />
+                <span>Include in filter</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-top: 14px;">
           <div>
             <label for="tcpAdditionalHosts">Additional hosts/networks <span class="badge-optional">optional</span><br><span style="color: var(--muted); font-weight: 400; font-size: 14px;">one per line</span></label>
             <textarea id="tcpAdditionalHosts" placeholder="e.g.&#10;host 1.2.3.4&#10;net 10.0.0.0/24" style="min-height: 80px; font-size: 14px;"></textarea>
@@ -810,8 +844,14 @@
         tcpRotation: $("tcpRotation"),
         tcpRotationSize: $("tcpRotationSize"),
         tcpRotationCount: $("tcpRotationCount"),
+        tcpGwDisplay: $("tcpGwDisplay"),
+        tcpIncludeGw: $("tcpIncludeGw"),
         tcpPeerDisplay: $("tcpPeerDisplay"),
         tcpIncludePeer: $("tcpIncludePeer"),
+        tcpLocalDisplay: $("tcpLocalDisplay"),
+        tcpIncludeLocal: $("tcpIncludeLocal"),
+        tcpRemoteDisplay: $("tcpRemoteDisplay"),
+        tcpIncludeRemote: $("tcpIncludeRemote"),
         tcpAdditionalHosts: $("tcpAdditionalHosts"),
         tcpPorts: $("tcpPorts"),
         tcpIsakmp: $("tcpIsakmp"),
@@ -1203,23 +1243,41 @@
         const basePath = state.tcpBaseName.value.trim() || "tcpdump";
         const base = basePath.replace(/\.(pcap|txt)$/, "");
         const iface = "any";
+        const gwIp = state.gwIp.value.trim();
         const peerIp = state.peerIp.value.trim();
+        const localIp = state.localHost.value.trim();
+        const remoteIp = state.remoteHost.value.trim();
         const rotation = state.tcpRotation.value;
         const rotationSize = state.tcpRotationSize.value.trim() || "256";
         const rotationCount = state.tcpRotationCount.value.trim() || "4";
+        const includeGw = state.tcpIncludeGw.checked;
         const includePeer = state.tcpIncludePeer.checked;
+        const includeLocal = state.tcpIncludeLocal.checked;
+        const includeRemote = state.tcpIncludeRemote.checked;
         const additionalHosts = state.tcpAdditionalHosts.value.trim();
         const customPorts = state.tcpPorts.value.trim();
 
-        // Update the peer IP display field
+        // Update the IP display fields
+        state.tcpGwDisplay.value = gwIp || "(not set - enter in section 1)";
         state.tcpPeerDisplay.value = peerIp || "(not set - enter in section 1)";
+        state.tcpLocalDisplay.value = localIp || "(not set - enter in section 1)";
+        state.tcpRemoteDisplay.value = remoteIp || "(not set - enter in section 1)";
 
         // Build host/network filters
         let filters = [];
-        
-        // Add peer IP if checkbox is checked and peer IP exists
-        if (includePeer && peerIp) {
+
+        // Add IPs if checkbox is checked and IP exists
+        if (includeGw && gwIp && gwIp !== "0") {
+          filters.push(`host ${gwIp}`);
+        }
+        if (includePeer && peerIp && peerIp !== "0") {
           filters.push(`host ${peerIp}`);
+        }
+        if (includeLocal && localIp && localIp !== "0") {
+          filters.push(`host ${localIp}`);
+        }
+        if (includeRemote && remoteIp && remoteIp !== "0") {
+          filters.push(`host ${remoteIp}`);
         }
 
         // Add additional hosts/networks (one per line)
@@ -1240,7 +1298,7 @@
 
         // Check if we have at least one host/network filter
         if (filters.length === 0) {
-          state.tcpCommand.value = "# Check 'Include peer IP' or add additional hosts to generate command";
+          state.tcpCommand.value = "# Include at least one IP or add additional hosts to generate command";
           $("copyTcp").disabled = true;
           state.tcpHint.textContent = "Required: At least one host or network filter";
           return;
