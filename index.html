@@ -1156,11 +1156,11 @@
           return;
         }
 
-        // Use only complete valid IPs for command generation (allow "0" as special case)
-        const gw = (gwVal === "0" || isValidIPv4(gwVal)) ? gwVal : "";
-        const peer = (peerVal === "0" || isValidIPv4(peerVal)) ? peerVal : "";
-        const local = (localVal === "0" || isValidIPv4(localVal)) ? localVal : "";
-        const remote = (remoteVal === "0" || isValidIPv4(remoteVal)) ? remoteVal : "";
+        // Use only complete valid IPs for command generation (not "0" — that's only for all-zeros case)
+        const gw = isValidIPv4(gwVal) ? gwVal : "";
+        const peer = isValidIPv4(peerVal) ? peerVal : "";
+        const local = isValidIPv4(localVal) ? localVal : "";
+        const remote = isValidIPv4(remoteVal) ? remoteVal : "";
 
         // Check if we have at least one valid IP
         const hasGatewayIp = gw || peer;
