@@ -289,6 +289,14 @@
       .rotation-fields.active {
         display: grid !important;
       }
+      .fw-port-fields,
+      .fw-proto-fields {
+        display: none !important;
+      }
+      .fw-port-fields.active,
+      .fw-proto-fields.active {
+        display: grid !important;
+      }
       .tabs {
         display: flex;
         gap: 8px;
@@ -464,6 +472,32 @@
               <option value="r8110">R81.10</option>
               <option value="smb">SMB</option>
             </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top: 14px; gap: 16px; flex-wrap: wrap;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="fwEnablePorts" />
+            Enable port filter
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="fwEnableProtocol" />
+            Enable protocol filter
+          </label>
+        </div>
+        <div class="grid grid-2 fw-port-fields" id="fwPortFieldsWrapper" style="margin-top: 14px;">
+          <div>
+            <label for="fwSrcPort">Src Port <span class="badge-optional">optional</span></label>
+            <input id="fwSrcPort" type="number" min="0" max="65535" placeholder="e.g. 0 (any)" />
+          </div>
+          <div>
+            <label for="fwDstPort">Dst Port <span class="badge-optional">optional</span></label>
+            <input id="fwDstPort" type="number" min="0" max="65535" placeholder="e.g. 443" />
+          </div>
+        </div>
+        <div class="grid grid-1 fw-proto-fields" id="fwProtoFieldsWrapper" style="margin-top: 14px;">
+          <div>
+            <label for="fwProtocol">Protocol number <span class="badge-optional">optional</span></label>
+            <input id="fwProtocol" type="number" min="0" max="255" placeholder="e.g. 6 (TCP), 17 (UDP), 50 (ESP)" />
           </div>
         </div>
         <div class="hint">Tip: You can paste IPs as you go. Outputs update automatically.</div>
@@ -809,7 +843,12 @@
         sftpHost: $("sftpHost"),
         sftpUploadFile: $("sftpUploadFile"),
         sftpUploadPath: $("sftpUploadPath"),
-        sftpCommand: $("sftpCommand")
+        sftpCommand: $("sftpCommand"),
+        fwEnablePorts: $("fwEnablePorts"),
+        fwSrcPort: $("fwSrcPort"),
+        fwDstPort: $("fwDstPort"),
+        fwEnableProtocol: $("fwEnableProtocol"),
+        fwProtocol: $("fwProtocol")
       };
 
       // --- Validation helpers ---
@@ -921,6 +960,21 @@
         showError(el, valid ? "" : "Invalid IPv4 — need 4 octets (e.g. 1.2.3.4)");
       }
 
+      // Port validation helpers
+      function hasObviousPortError(str) {
+        if (!str) return null;
+        if (!/^\d+$/.test(str)) return "Only numbers allowed";
+        if (+str > 65535) return "Port must be 0–65535";
+        return null;
+      }
+
+      function hasObviousProtocolError(str) {
+        if (!str) return null;
+        if (!/^\d+$/.test(str)) return "Only numbers allowed";
+        if (+str > 255) return "Protocol must be 0–255";
+        return null;
+      }
+
       // Check for obvious errors in a host/net line while typing
       function hasObviousHostNetError(line) {
         const l = line.trim();
@@ -995,21 +1049,27 @@
         const local = state.localHost.value.trim();
         const remote = state.remoteHost.value.trim();
 
+        const portsEnabled = state.fwEnablePorts.checked;
+        const protoEnabled = state.fwEnableProtocol.checked;
+        const sp = portsEnabled && state.fwSrcPort.value.trim() ? state.fwSrcPort.value.trim() : "0";
+        const dp = portsEnabled && state.fwDstPort.value.trim() ? state.fwDstPort.value.trim() : "0";
+        const proto = protoEnabled && state.fwProtocol.value.trim() ? state.fwProtocol.value.trim() : "0";
+
         const filters = [];
         if (gw && peer) {
-          filters.push(`-F "${gw},0,${peer},0,0"`, `-F "${peer},0,${gw},0,0"`);
+          filters.push(`-F "${gw},${sp},${peer},${dp},${proto}"`, `-F "${peer},${dp},${gw},${sp},${proto}"`);
         } else if (gw) {
-          filters.push(`-F "${gw},0,0,0,0"`, `-F "0,0,${gw},0,0"`);
+          filters.push(`-F "${gw},${sp},0,${dp},${proto}"`, `-F "0,${dp},${gw},${sp},${proto}"`);
         } else if (peer) {
-          filters.push(`-F "${peer},0,0,0,0"`, `-F "0,0,${peer},0,0"`);
+          filters.push(`-F "${peer},${sp},0,${dp},${proto}"`, `-F "0,${dp},${peer},${sp},${proto}"`);
         }
 
         if (local && remote) {
-          filters.push(`-F "${local},0,${remote},0,0"`, `-F "${remote},0,${local},0,0"`);
+          filters.push(`-F "${local},${sp},${remote},${dp},${proto}"`, `-F "${remote},${dp},${local},${sp},${proto}"`);
         } else if (local) {
-          filters.push(`-F "${local},0,0,0,0"`, `-F "0,0,${local},0,0"`);
+          filters.push(`-F "${local},${sp},0,${dp},${proto}"`, `-F "0,${dp},${local},${sp},${proto}"`);
         } else if (remote) {
-          filters.push(`-F "${remote},0,0,0,0"`, `-F "0,0,${remote},0,0"`);
+          filters.push(`-F "${remote},${sp},0,${dp},${proto}"`, `-F "0,${dp},${remote},${sp},${proto}"`);
         }
         return filters.join(" ");
       }
@@ -1032,6 +1092,27 @@
           $("copyFw").disabled = true;
           state.fwHint.textContent = "";
           return;
+        }
+
+        // Validate ports and protocol if enabled
+        if (state.fwEnablePorts.checked) {
+          const spErr = hasObviousPortError(state.fwSrcPort.value.trim());
+          const dpErr = hasObviousPortError(state.fwDstPort.value.trim());
+          if (spErr || dpErr) {
+            state.fwCommand.value = "# Fix invalid port numbers above";
+            $("copyFw").disabled = true;
+            state.fwHint.textContent = "";
+            return;
+          }
+        }
+        if (state.fwEnableProtocol.checked) {
+          const protoErr = hasObviousProtocolError(state.fwProtocol.value.trim());
+          if (protoErr) {
+            state.fwCommand.value = "# Fix invalid protocol number above";
+            $("copyFw").disabled = true;
+            state.fwHint.textContent = "";
+            return;
+          }
         }
 
         // Use only complete valid IPs for command generation
@@ -1517,6 +1598,25 @@
         state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
       }
 
+      function toggleFwPorts() {
+        const isOn = state.fwEnablePorts.checked;
+        $("fwPortFieldsWrapper").classList.toggle("active", isOn);
+        if (!isOn) {
+          state.fwSrcPort.value = "";
+          state.fwDstPort.value = "";
+        }
+        buildFwMonitor();
+      }
+
+      function toggleFwProtocol() {
+        const isOn = state.fwEnableProtocol.checked;
+        $("fwProtoFieldsWrapper").classList.toggle("active", isOn);
+        if (!isOn) {
+          state.fwProtocol.value = "";
+        }
+        buildFwMonitor();
+      }
+
       function switchTab(tabName) {
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(tab => {
@@ -1607,6 +1707,14 @@
           toggleCaptureBaseNames();
         });
 
+        state.fwEnablePorts.addEventListener("change", () => {
+          toggleFwPorts();
+        });
+
+        state.fwEnableProtocol.addEventListener("change", () => {
+          toggleFwProtocol();
+        });
+
         state.sftpMode.addEventListener("change", () => {
           buildSftp();
         });
@@ -1678,6 +1786,8 @@
       toggleRotationFields();
       toggleZdebugFile();
       toggleCaptureBaseNames();
+      toggleFwPorts();
+      toggleFwProtocol();
       buildFwMonitor();
       buildTcpdump();
       buildZdebug();
