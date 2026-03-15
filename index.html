@@ -557,11 +557,11 @@
           </div>
           <div>
             <label for="fwBaseName">fw monitor output path</label>
-            <input id="fwBaseName" value="/var/log/fwmonitor" />
+            <input id="fwBaseName" value="/var/log/fwmonitor.pcap" />
           </div>
           <div>
             <label for="tcpBaseName">tcpdump output path</label>
-            <input id="tcpBaseName" value="/var/log/tcpdump" />
+            <input id="tcpBaseName" value="/var/log/tcpdump.pcap" />
           </div>
         </div>
         <div class="grid grid-2" style="margin-top: 14px;">
@@ -1497,15 +1497,17 @@
             extraFiles.push("/logs/drops.txt");
           }
           if (state.tarTcpdump.checked) {
-            const tcpPath = state.tcpBaseName.value.trim() || "/logs/tcpdump";
-            // If user entered full path with /var/log/, replace with /logs/
-            const fixedTcpPath = tcpPath.replace(/^\/var\/log\//, "/logs/");
+            const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump.pcap";
+            // Remove extension, then convert /var/log/ to /logs/
+            const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
+            const fixedTcpPath = tcpBase.replace(/^\/var\/log\//, "/logs/");
             extraFiles.push(`${fixedTcpPath}*`);
           }
           if (state.tarFwmonitor.checked) {
-            const fwPath = state.fwBaseName.value.trim() || "/logs/fwmonitor";
-            // If user entered full path with /var/log/, replace with /logs/
-            const fixedFwPath = fwPath.replace(/^\/var\/log\//, "/logs/");
+            const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor.pcap";
+            // Remove extension, then convert /var/log/ to /logs/
+            const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
+            const fixedFwPath = fwBase.replace(/^\/var\/log\//, "/logs/");
             extraFiles.push(`${fixedFwPath}*`);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
@@ -1524,12 +1526,14 @@
             extraFiles.push(dropsFile);
           }
           if (state.tarTcpdump.checked) {
-            const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump";
-            extraFiles.push(`${tcpPath}*`);
+            const tcpPath = state.tcpBaseName.value.trim() || "/var/log/tcpdump.pcap";
+            const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
+            extraFiles.push(`${tcpBase}*`);
           }
           if (state.tarFwmonitor.checked) {
-            const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor";
-            extraFiles.push(`${fwPath}*`);
+            const fwPath = state.fwBaseName.value.trim() || "/var/log/fwmonitor.pcap";
+            const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
+            extraFiles.push(`${fwBase}*`);
           }
           const extraStr = extraFiles.length ? " " + extraFiles.join(" ") : "";
           tarCmd = `tar czvf /var/log/vpn_debugs_${timestamp}.tgz $FWDIR/log/${logFiles}${extraStr}`;
@@ -1641,11 +1645,27 @@
       }
 
       function toggleCaptureBaseNames() {
-        const isStdout = state.outputType.value === "stdout";
+        const outputType = state.outputType.value;
+        const isStdout = outputType === "stdout";
         state.fwBaseName.disabled = isStdout;
         state.tcpBaseName.disabled = isStdout;
         state.fwBaseName.style.opacity = isStdout ? "0.4" : "1";
         state.tcpBaseName.style.opacity = isStdout ? "0.4" : "1";
+
+        // Update file extensions based on output type
+        if (!isStdout) {
+          const fwPath = state.fwBaseName.value.trim();
+          const tcpPath = state.tcpBaseName.value.trim();
+
+          // Remove existing extension
+          const fwBase = fwPath.replace(/\.(pcap|txt)$/, "");
+          const tcpBase = tcpPath.replace(/\.(pcap|txt)$/, "");
+
+          // Add new extension
+          const ext = outputType === "txt" ? ".txt" : ".pcap";
+          state.fwBaseName.value = fwBase + ext;
+          state.tcpBaseName.value = tcpBase + ext;
+        }
       }
 
       function toggleFwPorts() {
