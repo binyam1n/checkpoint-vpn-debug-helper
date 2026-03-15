@@ -1852,6 +1852,8 @@
 
         state.gwVersion.addEventListener("change", () => {
           toggleCaptureBaseNames();
+          buildFwMonitor();
+          buildTcpdump();
         });
 
         state.fwEnablePorts.addEventListener("change", () => {
