@@ -1601,11 +1601,11 @@
         let outputPath = "/var/log/vpn_debugs_YYMMDD_HHMM_HOSTNAME.tgz";
         if (version === "smb") {
           outputPath = "/logs/vpn_debugs_YYMMDD_HHMM_HOSTNAME.tgz";
-          hint = "Turns off all debugging, collects VPN/IKE logs + sfwd logs. Output: " + outputPath;
+          hint = "Turns off all debugging, collects VPN/IKE logs + sfwd logs.\nOutput: " + outputPath;
         } else if (version === "r8110") {
-          hint = "Turns off all debugging, collects VPN/IKE/legacy logs. Output: " + outputPath;
+          hint = "Turns off all debugging, collects VPN/IKE/legacy logs.\nOutput: " + outputPath;
         } else if (version === "r8120") {
-          hint = "Turns off all debugging, collects VPN/IKE logs + IKE calc data. Output: " + outputPath;
+          hint = "Turns off all debugging, collects VPN/IKE logs + IKE calc data.\nOutput: " + outputPath;
         }
         document.getElementById("collectionHint").textContent = hint;
       }
