@@ -1602,6 +1602,22 @@
           buildSftp();
         });
 
+        state.sftpUser.addEventListener("input", () => {
+          buildSftp();
+        });
+        state.sftpPass.addEventListener("input", () => {
+          buildSftp();
+        });
+        state.sftpHost.addEventListener("input", () => {
+          buildSftp();
+        });
+        state.sftpUploadFile.addEventListener("input", () => {
+          buildSftp();
+        });
+        state.sftpUploadPath.addEventListener("input", () => {
+          buildSftp();
+        });
+
         $("copyFw").addEventListener("click", () => copy("fwCommand"));
         $("copyTcp").addEventListener("click", () => copy("tcpCommand"));
         $("copyZdebug").addEventListener("click", () => copy("zdebugCommand"));
