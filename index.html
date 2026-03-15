@@ -998,9 +998,18 @@
         const filters = [];
         if (gw && peer) {
           filters.push(`-F "${gw},0,${peer},0,0"`, `-F "${peer},0,${gw},0,0"`);
+        } else if (gw) {
+          filters.push(`-F "${gw},0,0,0,0"`, `-F "0,0,${gw},0,0"`);
+        } else if (peer) {
+          filters.push(`-F "${peer},0,0,0,0"`, `-F "0,0,${peer},0,0"`);
         }
+
         if (local && remote) {
           filters.push(`-F "${local},0,${remote},0,0"`, `-F "${remote},0,${local},0,0"`);
+        } else if (local) {
+          filters.push(`-F "${local},0,0,0,0"`, `-F "0,0,${local},0,0"`);
+        } else if (remote) {
+          filters.push(`-F "${remote},0,0,0,0"`, `-F "0,0,${remote},0,0"`);
         }
         return filters.join(" ");
       }
