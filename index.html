@@ -1089,13 +1089,11 @@
 
         // Check for "0" FIRST - highest priority
         const hasAnyZero = gwVal === "0" || peerVal === "0" || localVal === "0" || remoteVal === "0";
-        const hasValidGw = isValidIPv4(gwVal);
-        const hasValidPeer = isValidIPv4(peerVal);
-        const hasValidLocal = isValidIPv4(localVal);
-        const hasValidRemote = isValidIPv4(remoteVal);
+        const hasValidGw = gwVal && isValidIPv4(gwVal);
+        const hasValidPeer = peerVal && isValidIPv4(peerVal);
+        const hasValidLocal = localVal && isValidIPv4(localVal);
+        const hasValidRemote = remoteVal && isValidIPv4(remoteVal);
         const hasAnyValidIP = hasValidGw || hasValidPeer || hasValidLocal || hasValidRemote;
-
-        console.log("buildFwMonitor:", {gwVal, peerVal, localVal, remoteVal, hasAnyZero, hasAnyValidIP});
 
         // If any "0" and no valid IPs, use universal capture IMMEDIATELY
         if (hasAnyZero && !hasAnyValidIP) {
